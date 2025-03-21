@@ -1,0 +1,13 @@
+doctype html
+html(lang='en')
+  head
+    title Access Error 
+  body  
+    h1 File Server
+    h2
+      |Error in request&nbsp;
+      span(style='color:red;') (#{error})
+      |&nbsp;&nbsp; #{msg}
+    p(style='color:red;') Please, correct the request.
+    if back
+      a(href=back) Home

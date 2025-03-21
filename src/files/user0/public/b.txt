@@ -1,0 +1,5 @@
+Another text from the b.txt file showing several lines:
+A
+B
+C
+D

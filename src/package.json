@@ -1,0 +1,21 @@
+{
+  "name": "file-server",
+  "version": "1.0.0",
+  "description": "Skeleton FileServer project app",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Miguel Monteiro",
+  "license": "ISC",
+  "dependencies": {
+    "koa": "^2.14.1",
+    "koa-bodyparser": "^4.4.0",
+    "koa-logger": "^3.2.1",
+    "koa-pug": "^5.1.0",
+    "koa-router": "^12.0.0",
+    "koa-session": "^6.4.0",
+    "koa-session-memory": "^1.0.4",
+    "mysql2": "^3.2.0"
+  }
+}

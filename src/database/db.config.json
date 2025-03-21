@@ -1,0 +1,10 @@
+{
+  "mysqldb": {
+    "connectionLimit": 4,
+    "database": "FileServer",
+    "debug": false,
+    "host": "localhost",
+    "password": "file_server_pass",
+    "user": "filer_root"
+  }
+}
