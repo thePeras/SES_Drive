@@ -27,9 +27,11 @@ communication are not the focus of this project.
 - A user may share a file/directory with other users with view or edit permissions.
 ◦ A user's personal web page is public.
 
-[Deliverable Dates](https://www.notion.so/1bd3a3811b65807a84a1ea9d34762403?pvs=21)
+## Deliverable dates
+- Application Demo: May 23rd
+- Report submission: May 30th
 
-Proposed stack:
+## Proposed stack:
 
 - Client web page: React with ShadCN
 - Server:
