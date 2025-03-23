@@ -30,7 +30,7 @@ app.use(bodyParser());
 
 //sessions
 app.keys = ['key for cookie signature'];                            // CHANGE to an unpredictable string
-app.use(session({store, key:'sesid', maxAge:20*60*1000}, app));     // 20 min sessions with 'sesid' cookie
+app.use(session({ store, key: 'sesid', maxAge: 20 * 60 * 1000 }, app));     // 20 min sessions with 'sesid' cookie
 
 //router
 app.use(router.routes());
@@ -42,7 +42,7 @@ const serverCallback = app.callback();
 
 // server configuration (HTTP) and (HTTPS)
 const config = {
-  domain: os.hostname().toLowerCase(),
+  domain: "localhost",
   https: {
     port: 9000,
     /*
@@ -53,8 +53,8 @@ const config = {
     */
   },
   http: {
-	  port: 9001
-  }	  
+    port: 9001
+  }
 };
 
 // bind the server callback function to listening a port
