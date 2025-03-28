@@ -1,5 +1,9 @@
+import ModeToggle from "@/components/mode-toggle"
 import { Button } from "@/components/ui/button"
 import { useNavigate } from "react-router-dom"
+import Dropzone from "shadcn-dropzone"
+import { SidebarProvider } from "@/components/ui/sidebar"  
+import { AppSidebar } from "@/components/app-sidebar"
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -8,8 +12,15 @@ export default function DashboardPage() {
     navigate('/')
   }
   return (
-    <div className="flex min-h-screen flex-col p-4">
+
+    <SidebarProvider className="flex min-h-screen flex-col p-4">
+      
+      <AppSidebar />
+      
       <div className="flex justify-between items-center mb-8">
+        <div className="absolute top-4 right-4">
+            <ModeToggle />
+        </div>
         <h1 className="text-2xl font-bold">Aspose</h1>
         <Button variant="outline" onClick={handleLogout}>
           Logout
@@ -17,8 +28,8 @@ export default function DashboardPage() {
       </div>
       <div className="flex-1">
         <h1>Welcome to Aspose, the best file management tool</h1>
-        {/* TODO: Add file structure here */}
+        <Dropzone />
       </div>
-    </div>
+    </SidebarProvider>
   )
 } 
