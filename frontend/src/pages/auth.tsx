@@ -1,36 +1,44 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { LoginForm } from '@/components/login-form'
-import RegisterForm from '@/components/register-form'
-import { cn } from '@/lib/utils'
+import { RegisterForm } from '@/components/register-form'
 import ModeToggle from '@/components/mode-toggle'
+import { motion } from 'framer-motion'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+
 export default function AuthPage() {
     const [showLogin, setShowLogin] = useState(true)
+    const navigate = useNavigate()
+    const location = useLocation()
+    const [searchParams] = useSearchParams()
 
+    useEffect(() => {
+        // Check URL parameter for register
+        const register = searchParams.get('register')
+        if (register === 'true') {
+            setShowLogin(false)
+        }
+    }, [searchParams])
 
+    const handleAuthSuccess = () => {
+        // Redirect to the attempted location or dashboard
+        const from = location.state?.from?.pathname || '/dashboard'
+        navigate(from, { replace: true })
+    }
 
     return (
         <div className="flex min-h-screen items-center justify-center p-4">
             <div className="absolute top-4 right-4">
                 <ModeToggle />
             </div>
-            <div className="w-full max-w-[1000px] grid grid-cols-2 gap-8">
-                <div
-                    className={cn(
-                        "transition-all duration-500",
-                        showLogin ? "animate-fadeInLeft" : "animate-fadeOutLeft opacity-0"
-                    )}
-                >
-                    <LoginForm setShowLogin={setShowLogin} />
-                </div>
-                <div
-                    className={cn(
-                        "transition-all duration-500",
-                        !showLogin ? "animate-fadeInRight" : "animate-fadeOutRight opacity-0"
-                    )}
-                >
-                    <RegisterForm setShowLogin={setShowLogin} />
-                </div>
-            </div>
+            <motion.div
+                className="w-1/2 max-w-[1000px]"
+            >
+                {showLogin ? (
+                    <LoginForm setShowLogin={setShowLogin} onSuccess={handleAuthSuccess} />
+                ) : (
+                    <RegisterForm setShowLogin={setShowLogin} onSuccess={handleAuthSuccess} />
+                )}
+            </motion.div>
         </div>
     )
 }
