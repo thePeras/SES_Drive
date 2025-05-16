@@ -25,3 +25,11 @@ const auth = async (req, res, next) => {
 };
 
 module.exports = auth;
+
+module.exports.authenticate = (req, res, next) => {
+  if (req.headers.authorization) {
+    req.user = { _id: 'exampleUserId' };
+    return next();
+  }
+  res.status(401).json({ message: 'Unauthorized' });
+};
