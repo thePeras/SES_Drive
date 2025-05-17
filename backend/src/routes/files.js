@@ -7,7 +7,7 @@ import path from 'path';
 import fs from 'fs';
 import File from '../models/File.js';
 
-
+// setup multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const userDir = path.join('uploads', req.user._id.toString());
@@ -26,7 +26,7 @@ const upload = multer({
     limits: { fileSize: 50 * 1024 * 1024 }, // 50MB -> lets not allow huge files, we are not Santa Casa da Misericórdia
 });
 
-
+// create file -> working
 router.post('/create', auth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -45,14 +45,34 @@ router.post('/create', auth, upload.single('file'), async (req, res) => {
     });
 
     await file.save();
-    res.status(201).json(file);
+    const response = {
+        name: file.name,
+        type: file.mimeType,
+    };
+    res.status(201).json(response);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error creating file', error: err.message });
   }
 });
 
-//delete
+// get all files -> working
+router.get('/', auth, async (req, res) => {
+    try {
+        const files = await File.find({ owner: req.user._id })
+            .select('name type _id parent')
+            .lean();
+        const response = files.map(file => ({
+            name: file.name,
+            type: file.mimeType,
+        }));
+        res.status(200).json(response);
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch files', error: err });
+    }
+});
+
+//delete -> wip
 router.delete('/:id', auth, async (req, res) => {
     try {
         const file = await findById(req.params.id);
@@ -66,7 +86,7 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
-//rename
+//rename -> wip
 router.put('/:id/rename', auth, async (req, res) => {
     const { newName } = req.body;
     try {
@@ -82,7 +102,7 @@ router.put('/:id/rename', auth, async (req, res) => {
     }
 });
 
-//share
+//share -> wip
 router.put('/:id/share', auth, async (req, res) => {
     const { userId, permission } = req.body;
     try {

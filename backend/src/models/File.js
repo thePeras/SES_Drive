@@ -4,7 +4,7 @@ const fileSchema = new Schema({
     name: { type: String, required: true },
     content: { type: String, default: '' },
     type: { type: String, enum: ['file', 'directory'], required: true },
-    mimeType: { type: String },  // new field for actual MIME type
+    mimeType: { type: String },
     owner: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     isPublic: { type: Boolean, default: false },
     write: [{ type: Schema.Types.ObjectId, ref: 'User' }],

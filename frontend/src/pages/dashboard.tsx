@@ -2,14 +2,36 @@ import ModeToggle from "@/components/mode-toggle"
 import { Label } from "@/components/ui/label"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
-import { FileManager } from "@/components/FileManager"
+import { FileTable } from "@/components/file-table"
 import { Button } from "@/components/ui/button"
 import { Upload } from "lucide-react"
-import { useRef, useState, ChangeEvent } from "react"
+import { useRef, useState, ChangeEvent, useEffect } from "react"
+
+export type FileItem = {
+    name: string;
+};
 
 export default function DashboardPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<FileItem[]>([]);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);  
+
+  const fetchFiles = () => {
+    setLoading(true);
+    fetch('/api/files', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    })
+        .then((res) => res.json())
+        .then((data) => setFiles(data))
+        .catch((err) => console.error(err))
+        .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        fetchFiles();
+    }, []);
   
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -34,8 +56,8 @@ export default function DashboardPage() {
         body: formData,
     });
 
-    const data = await res.json();
-    console.log(data);
+    await res.json();
+    fetchFiles();
   };
   
   return (
@@ -69,7 +91,9 @@ export default function DashboardPage() {
               <p className="text-sm text-muted-foreground mt-1">Selected: {selectedFile.name}</p>
             )}
           </div>
-          <FileManager /> {/* Added FileManager component */}
+            {error && <p className="text-red-500">{error}</p>}
+          <FileTable files={files} />
+            {loading && <p>Loading...</p>}
         </div>
       </main>
     </SidebarProvider>
