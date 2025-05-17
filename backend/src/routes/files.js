@@ -1,10 +1,13 @@
-const express = require('express');
+import { auth } from '../middleware/auth.js';
+import { findById } from '../models/File.js';
+import express from 'express';
 const router = express.Router();
-const File = require('../models/file');
-const { authenticate } = require('../middleware/auth');
+import File from '../models/File.js';
+
+
 
 //create? useless maybe
-router.post('/create', authenticate, async (req, res) => {
+router.post('/create', auth, async (req, res) => {
     const { name, type, content } = req.body;
     try {
         const file = new File({
@@ -23,9 +26,9 @@ router.post('/create', authenticate, async (req, res) => {
 });
 
 //delete
-router.delete('/:id', authenticate, async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
     try {
-        const file = await File.findById(req.params.id);
+        const file = await findById(req.params.id);
         if (!file || file.owner.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: 'Unauthorized' });
         }
@@ -37,10 +40,10 @@ router.delete('/:id', authenticate, async (req, res) => {
 });
 
 //rename
-router.put('/:id/rename', authenticate, async (req, res) => {
+router.put('/:id/rename', auth, async (req, res) => {
     const { newName } = req.body;
     try {
-        const file = await File.findById(req.params.id);
+        const file = await findById(req.params.id);
         if (!file || file.owner.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: 'Unauthorized' });
         }
@@ -53,10 +56,10 @@ router.put('/:id/rename', authenticate, async (req, res) => {
 });
 
 //share
-router.put('/:id/share', authenticate, async (req, res) => {
+router.put('/:id/share', auth, async (req, res) => {
     const { userId, permission } = req.body;
     try {
-        const file = await File.findById(req.params.id);
+        const file = await findById(req.params.id);
         if (!file || file.owner.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: 'Unauthorized' });
         }
@@ -74,4 +77,4 @@ router.put('/:id/share', authenticate, async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

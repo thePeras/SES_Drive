@@ -1,8 +1,10 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const authRoutes = require('./routes/auth');
+import express from 'express';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import fileRoutes from './routes/files.js';
+import authRoutes from './routes/auth.js';
+
 
 // Load environment variables
 dotenv.config();
@@ -32,5 +34,4 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
-const fileRoutes = require('./routes/files');
 app.use('/api/files', fileRoutes);
