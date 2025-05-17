@@ -3,8 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, Edit2, Share2 } from 'lucide-react';
 
+type FileItem = {
+    _id: string;
+    name: string;
+    type: string;
+};
+
 export function FileManager() {
-    const [files, setFiles] = useState([]);
+    const [files, setFiles] = useState<FileItem[]>([]);
     const [newFileName, setNewFileName] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);

@@ -17,6 +17,9 @@ node_modules/
 dist/
 build/
 
+# Stored files
+backend/uploads/
+
 # Logs
 npm-debug.log*
 yarn-debug.log*

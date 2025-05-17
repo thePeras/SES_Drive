@@ -24,7 +24,7 @@ export async function auth(req, res, next) {
 // Lightweight mock middleware (optional, for testing)
 export function authenticate(req, res, next) {
   if (req.headers.authorization) {
-    req.user = { _id: 'exampleUserId' }; // Mocked user
+    req.user = { _id: 'exampleUserId' };
     return next();
   }
   res.status(401).json({ message: 'Unauthorized' });
