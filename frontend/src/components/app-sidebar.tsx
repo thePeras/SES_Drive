@@ -3,13 +3,17 @@ import { Home, User } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
+import Logo from "./ui/logo"
+import { useNavigate } from "react-router-dom"
 
 const items = [
   {
@@ -25,11 +29,19 @@ const items = [
 ]
 
 export function AppSidebar() {
+  const navigate = useNavigate()
+  const handleLogout = () => {
+      localStorage.removeItem('token')
+      navigate('/')
+  }
+
   return (
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <SidebarHeader>
+            <Logo className="text-primary h-16 w-full" />
+          </SidebarHeader>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
@@ -44,6 +56,11 @@ export function AppSidebar() {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
+          <SidebarFooter>
+            <Button variant="outline" onClick={handleLogout}>
+              Logout
+            </Button>
+          </SidebarFooter>
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
