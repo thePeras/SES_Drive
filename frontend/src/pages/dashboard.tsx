@@ -4,11 +4,14 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { FileTable } from "@/components/file-table"
 import { Button } from "@/components/ui/button"
-import { Upload } from "lucide-react"
+import { Folder, Upload } from "lucide-react"
 import { useRef, useState, ChangeEvent, useEffect } from "react"
+import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 
 export type FileItem = {
     name: string;
+    type: string;
 };
 
 export default function DashboardPage() {
@@ -16,7 +19,8 @@ export default function DashboardPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);  
+  const [loading, setLoading] = useState(false);
+  const [directoryName, setDirectoryName] = useState('');
 
   const fetchFiles = () => {
     setLoading(true);
@@ -59,6 +63,29 @@ export default function DashboardPage() {
     await res.json();
     fetchFiles();
   };
+
+  const newDirectory = async () => {
+    if (!directoryName) {
+        setError("Directory name cannot be empty");
+        return;
+    }
+    const payload = {
+        name: directoryName,
+        parent: null,
+    };
+    console.log(payload);
+    const res = await fetch("/api/files/mkdir", {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+    await res.json();
+    fetchFiles();
+  }
+
   
   return (
     <SidebarProvider className="flex flex-row min-h-screen">
@@ -71,7 +98,28 @@ export default function DashboardPage() {
         <div className="flex-1 p-4">
           <h1>Welcome to Aspose, the best file management tool</h1>
           <div className="grid w-full max-w-sm items-center gap-1.5 mb-4">
-            <Label htmlFor="picture">Picture</Label>
+            <Dialog>
+              <DialogTrigger className="w-full flex justify-start">
+                <Button variant="outline">
+                  <Folder className="mr-2" />
+                  New Directory
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <div className="grid gap-4">
+                  <Label htmlFor="directory-name">Directory Name</Label>
+                  <Input
+                    id="directory-name"
+                    type="text"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    placeholder="Enter directory name"
+                    value={directoryName}
+                    onChange={(e) => setDirectoryName(e.target.value)}
+                  />
+                  <Button onClick={newDirectory}>Create Directory</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
             <div className="w-full flex flex-row items-center justify-between">
               <div className="relative flex-1">
                 <input

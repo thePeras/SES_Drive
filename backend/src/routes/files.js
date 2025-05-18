@@ -64,11 +64,32 @@ router.get('/', auth, async (req, res) => {
             .lean();
         const response = files.map(file => ({
             name: file.name,
-            type: file.mimeType,
+            type: file.type,
         }));
         res.status(200).json(response);
     } catch (err) {
         res.status(500).json({ message: 'Failed to fetch files', error: err });
+    }
+});
+
+// create folder -> working
+router.post('/mkdir', auth, async (req, res) => {
+    const { name, parent = null } = req.body;
+    console.log('Creating folder:', req.body);
+    try {
+        const folder = new File({
+            name,
+            type: 'directory',
+            content: '',
+            owner: req.user._id,
+            write: [req.user._id],
+            read: [req.user._id],
+            parent: null,
+        });
+        await folder.save();
+        res.status(201).json(folder);
+    } catch (err) {
+        res.status(500).json({ message: 'Error creating folder', error: err });
     }
 });
 
