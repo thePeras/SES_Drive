@@ -1,7 +1,11 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const auth = require('../middleware/auth');
+import express from "express";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+import { auth } from "../middleware/auth.js";
+import dotenv from "dotenv";
+
+dotenv.config();
+
 
 const router = express.Router();
 
@@ -68,4 +72,4 @@ router.get('/profile', auth, async (req, res) => {
   res.json(req.user);
 });
 
-module.exports = router;
+export default router;

@@ -1,0 +1,148 @@
+import { auth } from '../middleware/auth.js';
+import { findById } from '../models/File.js';
+import express from 'express';
+import multer from 'multer';
+const router = express.Router();
+import path from 'path';
+import fs from 'fs';
+import File from '../models/File.js';
+
+// setup multer
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const userDir = path.join('uploads', req.user._id.toString());
+    // Create dir if not exists
+    fs.mkdirSync(userDir, { recursive: true });
+    cb(null, userDir);
+  },
+  filename: function (req, file, cb) {
+    // Keep original filename
+    cb(null, file.originalname);
+  }
+});
+
+const upload = multer({
+    storage,
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB -> lets not allow huge files, we are not Santa Casa da Misericórdia
+});
+
+// create file -> working
+router.post('/create', auth, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const file = new File({
+        name: req.file.originalname,
+        type: 'file',
+        mimeType: req.file.mimetype,
+        content: '',
+        owner: req.user._id,
+        write: [req.user._id],
+        read: [req.user._id],
+        parent: null,
+    });
+
+    await file.save();
+    const response = {
+        name: file.name,
+        type: file.mimeType,
+    };
+    res.status(201).json(response);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error creating file', error: err.message });
+  }
+});
+
+// get all files -> working
+router.get('/', auth, async (req, res) => {
+    try {
+        const files = await File.find({ owner: req.user._id })
+            .select('name type _id parent')
+            .lean();
+        const response = files.map(file => ({
+            name: file.name,
+            type: file.type,
+        }));
+        res.status(200).json(response);
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch files', error: err });
+    }
+});
+
+// create folder -> working
+router.post('/mkdir', auth, async (req, res) => {
+    const { name, parent = null } = req.body;
+    console.log('Creating folder:', req.body);
+    try {
+        const folder = new File({
+            name,
+            type: 'directory',
+            content: '',
+            owner: req.user._id,
+            write: [req.user._id],
+            read: [req.user._id],
+            parent: null,
+        });
+        await folder.save();
+        res.status(201).json(folder);
+    } catch (err) {
+        res.status(500).json({ message: 'Error creating folder', error: err });
+    }
+});
+
+//delete -> wip
+router.delete('/:id', auth, async (req, res) => {
+    try {
+        const file = await findById(req.params.id);
+        if (!file || file.owner.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+        await file.remove();
+        res.status(200).json({ message: 'File deleted' });
+    } catch (err) {
+        res.status(500).json({ message: 'Error deleting file', error: err });
+    }
+});
+
+//rename -> wip
+router.put('/:id/rename', auth, async (req, res) => {
+    const { newName } = req.body;
+    try {
+        const file = await findById(req.params.id);
+        if (!file || file.owner.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+        file.name = newName;
+        await file.save();
+        res.status(200).json(file);
+    } catch (err) {
+        res.status(500).json({ message: 'Error renaming file', error: err });
+    }
+});
+
+//share -> wip
+router.put('/:id/share', auth, async (req, res) => {
+    const { userId, permission } = req.body;
+    try {
+        const file = await findById(req.params.id);
+        if (!file || file.owner.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        if (permission === 'read') {
+            if (!file.read.includes(userId)) file.read.push(userId);
+        } else if (permission === 'write') {
+            if (!file.write.includes(userId)) file.write.push(userId);
+        }
+
+        await file.save();
+        res.status(200).json(file);
+    } catch (err) {
+        res.status(500).json({ message: 'Error sharing file', error: err });
+    }
+});
+
+export default router;
