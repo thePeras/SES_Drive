@@ -8,10 +8,11 @@ import { Folder, Upload } from "lucide-react"
 import { useRef, useState, ChangeEvent, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { Terminal } from "@/components/terminal"
 
 export type FileItem = {
-    name: string;
-    type: string;
+  name: string;
+  type: string;
 };
 
 export default function DashboardPage() {
@@ -25,18 +26,18 @@ export default function DashboardPage() {
   const fetchFiles = () => {
     setLoading(true);
     fetch('/api/files', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     })
-        .then((res) => res.json())
-        .then((data) => setFiles(data))
-        .catch((err) => console.error(err))
-        .finally(() => setLoading(false));
-    };
+      .then((res) => res.json())
+      .then((data) => setFiles(data))
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  };
 
-    useEffect(() => {
-        fetchFiles();
-    }, []);
-  
+  useEffect(() => {
+    fetchFiles();
+  }, []);
+
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFile(e.target.files[0]);
@@ -44,7 +45,7 @@ export default function DashboardPage() {
       setSelectedFile(null);
     }
   };
-  
+
   const uploadFile = async () => {
     const input = document.getElementById("picture") as HTMLInputElement;
     if (!input.files?.length) return;
@@ -53,11 +54,11 @@ export default function DashboardPage() {
     formData.append("file", input.files[0]);
 
     const res = await fetch("/api/files/create", {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: formData,
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: formData,
     });
 
     await res.json();
@@ -66,27 +67,27 @@ export default function DashboardPage() {
 
   const newDirectory = async () => {
     if (!directoryName) {
-        setError("Directory name cannot be empty");
-        return;
+      setError("Directory name cannot be empty");
+      return;
     }
     const payload = {
-        name: directoryName,
-        parent: null,
+      name: directoryName,
+      parent: null,
     };
     console.log(payload);
     const res = await fetch("/api/files/mkdir", {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
     });
     await res.json();
     fetchFiles();
   }
 
-  
+
   return (
     <SidebarProvider className="flex flex-row min-h-screen">
       <AppSidebar />
@@ -139,9 +140,13 @@ export default function DashboardPage() {
               <p className="text-sm text-muted-foreground mt-1">Selected: {selectedFile.name}</p>
             )}
           </div>
-            {error && <p className="text-red-500">{error}</p>}
-          <FileTable files={files} />
-            {loading && <p>Loading...</p>}
+          {error && <p className="text-red-500">{error}</p>}
+
+          <div className="grid grid-cols-2 gap-4">
+            <FileTable files={files} />
+            <Terminal />
+          </div>
+          {loading && <p>Loading...</p>}
         </div>
       </main>
     </SidebarProvider>
