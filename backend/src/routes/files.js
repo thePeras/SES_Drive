@@ -6,19 +6,20 @@ const router = express.Router();
 import path from 'path';
 import fs from 'fs';
 import File from '../models/File.js';
+import { exec } from 'child_process';
 
 // setup multer
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const userDir = path.join('uploads', req.user._id.toString());
-    // Create dir if not exists
-    fs.mkdirSync(userDir, { recursive: true });
-    cb(null, userDir);
-  },
-  filename: function (req, file, cb) {
-    // Keep original filename
-    cb(null, file.originalname);
-  }
+    destination: function (req, file, cb) {
+        const userDir = path.join('uploads', req.user._id.toString());
+        // Create dir if not exists
+        fs.mkdirSync(userDir, { recursive: true });
+        cb(null, userDir);
+    },
+    filename: function (req, file, cb) {
+        // Keep original filename
+        cb(null, file.originalname);
+    }
 });
 
 const upload = multer({
@@ -28,32 +29,32 @@ const upload = multer({
 
 // create file -> working
 router.post('/create', auth, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        const file = new File({
+            name: req.file.originalname,
+            type: 'file',
+            mimeType: req.file.mimetype,
+            content: '',
+            owner: req.user._id,
+            write: [req.user._id],
+            read: [req.user._id],
+            parent: null,
+        });
+
+        await file.save();
+        const response = {
+            name: file.name,
+            type: file.mimeType,
+        };
+        res.status(201).json(response);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error creating file', error: err.message });
     }
-
-    const file = new File({
-        name: req.file.originalname,
-        type: 'file',
-        mimeType: req.file.mimetype,
-        content: '',
-        owner: req.user._id,
-        write: [req.user._id],
-        read: [req.user._id],
-        parent: null,
-    });
-
-    await file.save();
-    const response = {
-        name: file.name,
-        type: file.mimeType,
-    };
-    res.status(201).json(response);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error creating file', error: err.message });
-  }
 });
 
 // get all files -> working
@@ -144,5 +145,36 @@ router.put('/:id/share', auth, async (req, res) => {
         res.status(500).json({ message: 'Error sharing file', error: err });
     }
 });
+
+//ci execution
+router.post('/ci', auth, async (req, res) => {
+    const { command } = req.body;
+
+    try {
+        // Execute the command
+        exec(command, {
+            cwd: path.join('uploads', req.user._id.toString()),
+            maxBuffer: 1024 * 1024 * 50, // 50MB buffer size
+            timeout: 1000 * 60 * 5, // 5 minutes timeout
+            //uid: req.user._id, TODO: config users
+        },
+            (error, stdout, stderr) => {
+                if (error) {
+                    console.error(`Error executing command: ${error}`);
+                    return res.status(500).json({ message: 'Error executing command' });
+                }
+                if (stderr) {
+                    console.error(`stderr: ${stderr}`);
+                    return res.status(200).json({ message: 'Command execution error', stderr });
+                }
+                console.log(`stdout: ${stdout}`);
+                res.status(200).json({ message: 'Command executed successfully', output: stdout });
+            });
+    } catch (err) {
+        console.error(`Error executing command: ${err}`);
+        res.status(500).json({ message: 'Error executing command' });
+    }
+}
+);
 
 export default router;

@@ -47,7 +47,7 @@ export function Terminal() {
     const inputRef = useRef<HTMLInputElement>(null)
     const scrollAreaRef = useRef<HTMLDivElement>(null)
 
-    const processCommand = (cmd: string): React.ReactNode => {
+    const processCommand = async (cmd: string): Promise<React.ReactNode> => {
         const trimmedCmd = cmd.trim()
         const args = trimmedCmd.split(" ")
         const command = args[0].toLowerCase()
@@ -82,8 +82,9 @@ export function Terminal() {
                 }, 100)
                 return null
 
-            // TODO: The default is to execute the command on server
             default:
+                return executeRemoteCommand(trimmedCmd)
+
                 return (
                     <p className="text-destructive">
                         Command not found: {command}. Type &apos;help&apos; to see available commands.
@@ -92,20 +93,42 @@ export function Terminal() {
         }
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const executeRemoteCommand = async (cmd: string) => {
+        const response = await fetch("/api/files/ci", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ command: cmd }),
+        })
+
+        if (response.status !== 200) {
+            const body = await response.json()
+            console.error(body.message)
+            return <p className="text-destructive">
+                Command failed, check the command and try again.
+            </p>
+        }
+
+        const data = await response.json()
+        return <p className="text-muted-foreground whitespace-pre-wrap">{data.output}</p>
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!input.trim()) return
 
         const newCommand = {
             id: commands.length,
             command: input,
-            output: processCommand(input),
+            output: await processCommand(input),
         }
 
         if (input.trim().toLowerCase() !== "clear") {
             setCommands((prev) => [...prev, newCommand])
         } else {
-            processCommand(input)
+            await processCommand(input)
         }
 
         // Add to history
