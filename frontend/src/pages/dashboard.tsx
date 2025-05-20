@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogTrigger, DialogFooter } from "@/components
 export type FileItem = {
     name: string;
     type: string;
+    owner: string;
+    permission?: 'owner' | 'write' | 'read' | null;
 };
 
 export default function DashboardPage() {
@@ -207,6 +209,7 @@ export default function DashboardPage() {
                   id="share-permission"
                   value={sharePermission}
                   onChange={(e) => setSharePermission(e.target.value as 'read' | 'write')}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                 >
                   <option value="read">Read</option>
                   <option value="write">Write</option>
@@ -227,4 +230,3 @@ export default function DashboardPage() {
     </SidebarProvider>
   )
 }
-

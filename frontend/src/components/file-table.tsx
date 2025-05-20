@@ -9,7 +9,6 @@ interface FileTableProps {
   onDelete: (fileId: string) => void;
 }
 
-
 export function FileTable({ files, onShare, onDelete }: FileTableProps) {
   return (
       <div className="rounded-lg border">
@@ -17,6 +16,8 @@ export function FileTable({ files, onShare, onDelete }: FileTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Owner</TableHead>
+              <TableHead>Permissions</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -26,6 +27,15 @@ export function FileTable({ files, onShare, onDelete }: FileTableProps) {
                   <TableCell className="font-medium flex flex-row items-center gap-2">
                     {file.type === 'directory' && <Folder className="w-4 h-4" />}
                     {file.name}
+                  </TableCell>
+                  <TableCell>
+                    {file.owner}
+                  </TableCell>
+                  <TableCell>
+                    {file.permission === 'owner' && <span className="accent-green-700 font-semibold">Owner</span>}
+                    {file.permission === 'write' && <span className="text-blue-700">Write</span>}
+                    {file.permission === 'read' && <span className="text-gray-600">Read</span>}
+                    {!file.permission && <span className="text-gray-400">-</span>}
                   </TableCell>
                   <TableCell>
                     <Button size="icon" variant="ghost">
@@ -45,6 +55,4 @@ export function FileTable({ files, onShare, onDelete }: FileTableProps) {
       </div>
   )
 }
-
-
 

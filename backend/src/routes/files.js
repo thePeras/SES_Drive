@@ -67,18 +67,74 @@ router.get('/', auth, async (req, res) => {
             ],
         })
             .select('name type _id parent owner permissions')
+            .populate('owner', 'username email name')
+            .lean();
+
+        const response = files.map(file => {
+            let ownerLabel;
+            if (file.owner._id.toString() === req.user._id.toString()) {
+                ownerLabel = 'You';
+            } else {
+                ownerLabel = `Shared by: ${file.owner.email}`;
+            }
+
+            let permission = null;
+            if (file.owner._id.toString() === req.user._id.toString()) {
+                permission = 'owner';
+            } else if (file.permissions?.some(
+                (perm) =>
+                    perm.user?.toString() === req.user._id.toString() &&
+                    perm.access === 'write'
+            )) {
+                permission = 'write';
+            } else if (file.permissions?.some(
+                (perm) =>
+                    perm.user?.toString() === req.user._id.toString() &&
+                    perm.access === 'read'
+            )) {
+                permission = 'read';
+            }
+
+            return {
+                _id: file._id,
+                name: file.name,
+                type: file.type,
+                owner: ownerLabel,
+                permission,
+            };
+        });
+
+        res.status(200).json(response);
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch files', error: err });
+    }
+});
+
+// get files shared with the user (not owned by them)
+router.get('/shared-with-me', auth, async (req, res) => {
+    try {
+        const files = await File.find({
+            owner: { $ne: req.user._id },
+            'permissions.user': req.user._id,
+        })
+            .select('name type _id parent owner permissions')
+            .populate('owner', 'username email name')
             .lean();
 
         const response = files.map(file => ({
             _id: file._id,
             name: file.name,
             type: file.type,
-            owner: file.owner.toString() === req.user._id.toString() ? 'You' : 'Shared',
+            owner: file.owner.email ? `Shared by: ${file.owner.email}` : 'Shared',
+            permission: file.permissions?.find(
+                (perm) =>
+                    perm.user?.toString() === req.user._id.toString()
+            )?.access || null,
         }));
 
         res.status(200).json(response);
     } catch (err) {
-        res.status(500).json({ message: 'Failed to fetch files', error: err });
+        res.status(500).json({ message: 'Failed to fetch shared files', error: err });
     }
 });
 
