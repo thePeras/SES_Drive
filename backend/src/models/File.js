@@ -7,25 +7,29 @@ const fileSchema = new Schema({
     mimeType: { type: String },
     owner: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     isPublic: { type: Boolean, default: false },
-    write: [{ type: Schema.Types.ObjectId, ref: 'User' }],
-    read: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    permissions: [
+        {
+            user: { type: Schema.Types.ObjectId, ref: 'User' },
+            access: { type: String, enum: ['read', 'write'], required: true },
+        },
+    ],
     parent: { type: Schema.Types.ObjectId, ref: 'File', default: null },
 });
+
+const File = model('File', fileSchema);
 
 export const findById = async (id) => {
     try {
         const file = await File.findById(id)
             .populate('owner', 'username')
-            .populate('write', 'username')
-            .populate('read', 'username')
+            .populate('permissions.user', 'username')
             .populate('parent', 'name');
         return file;
-    }
-    catch (err) {
+    } catch (err) {
         console.error('Error finding file by ID:', err);
         throw err;
     }
-    }
+};
 
 
-export default model('File', fileSchema);
+export default File;

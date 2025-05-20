@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Folder, Upload } from "lucide-react"
 import { useRef, useState, ChangeEvent, useEffect } from "react"
 import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 
 export type FileItem = {
     name: string;
@@ -21,6 +21,10 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [directoryName, setDirectoryName] = useState('');
+  const [shareIdentifier, setShareIdentifier] = useState('');
+  const [sharePermission, setSharePermission] = useState<'read' | 'write'>('read');
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
 
   const fetchFiles = () => {
     setLoading(true);
@@ -36,7 +40,7 @@ export default function DashboardPage() {
     useEffect(() => {
         fetchFiles();
     }, []);
-  
+
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFile(e.target.files[0]);
@@ -44,7 +48,7 @@ export default function DashboardPage() {
       setSelectedFile(null);
     }
   };
-  
+
   const uploadFile = async () => {
     const input = document.getElementById("picture") as HTMLInputElement;
     if (!input.files?.length) return;
@@ -73,7 +77,6 @@ export default function DashboardPage() {
         name: directoryName,
         parent: null,
     };
-    console.log(payload);
     const res = await fetch("/api/files/mkdir", {
         method: "POST",
         headers: {
@@ -86,7 +89,53 @@ export default function DashboardPage() {
     fetchFiles();
   }
 
-  
+  const shareFile = async () => {
+    if (!selectedFileId || !shareIdentifier) return;
+
+    const payload = {
+      identifier: shareIdentifier,
+      access: sharePermission,
+    };
+
+    const res = await fetch(`/api/files/${selectedFileId}/share`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      setShareMessage('File shared successfully!');
+      setShareIdentifier('');
+      setSelectedFileId(null);
+      fetchFiles();
+    } else {
+      const errorData = await res.json();
+      setShareMessage(`Error: ${errorData.message || 'Failed to share file'}`);
+    }
+  };
+
+  const deleteFile = async (fileId: string) => {
+    const res = await fetch(`/api/files/${fileId}`, {
+        method: 'DELETE',
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+    });
+
+    if (res.ok) {
+        fetchFiles();
+    } else {
+        console.error('Error deleting file');
+    }
+  };
+
+  const handleShare = (fileId: string) => {
+    setSelectedFileId(fileId);
+  };
+
   return (
     <SidebarProvider className="flex flex-row min-h-screen">
       <AppSidebar />
@@ -140,10 +189,42 @@ export default function DashboardPage() {
             )}
           </div>
             {error && <p className="text-red-500">{error}</p>}
-          <FileTable files={files} />
+          <FileTable files={files} onShare={handleShare} onDelete={deleteFile} />
             {loading && <p>Loading...</p>}
+          <Dialog open={!!selectedFileId} onOpenChange={() => setSelectedFileId(null)}>
+            <DialogContent>
+              <div className="grid gap-4">
+                <Label htmlFor="share-identifier">Email</Label>
+                <Input
+                  id="share-identifier"
+                  type="text"
+                  placeholder="Enter user email"
+                  value={shareIdentifier}
+                  onChange={(e) => setShareIdentifier(e.target.value)}
+                />
+                <Label htmlFor="share-permission">Permission</Label>
+                <select
+                  id="share-permission"
+                  value={sharePermission}
+                  onChange={(e) => setSharePermission(e.target.value as 'read' | 'write')}
+                >
+                  <option value="read">Read</option>
+                  <option value="write">Write</option>
+                </select>
+                {shareMessage && (
+                  <p className={`text-sm ${shareMessage.startsWith('Error') ? 'text-red-500' : 'text-green-500'}`}>
+                    {shareMessage}
+                  </p>
+                )}
+                <DialogFooter>
+                  <Button onClick={shareFile}>Share</Button>
+                </DialogFooter>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
     </SidebarProvider>
   )
 }
+
