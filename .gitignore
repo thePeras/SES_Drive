@@ -19,6 +19,7 @@ build/
 
 # Stored files
 backend/uploads/
+backend/profile/
 
 # Logs
 npm-debug.log*

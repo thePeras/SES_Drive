@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import fileRoutes from './routes/files.js';
 import authRoutes from './routes/auth.js';
+import userRoutes from './routes/users.js';
+import helmet from 'helmet';
 
 
 // Load environment variables
@@ -11,12 +13,21 @@ dotenv.config();
 
 const app = express();
 
+app.use(
+    helmet.contentSecurityPolicy({
+      directives: {
+        scriptSrc: ["'none'"],
+      },
+    })
+);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/your_database')

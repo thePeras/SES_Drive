@@ -1,14 +1,14 @@
-import ModeToggle from "@/components/mode-toggle"
-import { Label } from "@/components/ui/label"
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
-import { FileTable } from "@/components/file-table"
-import { Button } from "@/components/ui/button"
-import { Folder, Upload } from "lucide-react"
-import { useRef, useState, ChangeEvent, useEffect } from "react"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
-import { Terminal } from "@/components/terminal"
+import ModeToggle from "@/components/mode-toggle";
+import { Label } from "@/components/ui/label";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { FileTable } from "@/components/file-table";
+import { Button } from "@/components/ui/button";
+import { Folder, Upload } from "lucide-react";
+import { useRef, useState, ChangeEvent, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Terminal } from "@/components/terminal";
 
 export type FileItem = {
   name: string;
@@ -16,22 +16,20 @@ export type FileItem = {
 };
 
 export default function DashboardPage() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const generalFileRef = useRef<HTMLInputElement>(null);
+  const profileFileRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [directoryName, setDirectoryName] = useState('');
 
   const fetchFiles = () => {
-    setLoading(true);
     fetch('/api/files', {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     })
       .then((res) => res.json())
       .then((data) => setFiles(data))
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
+      .catch((err) => console.error(err));
   };
 
   useEffect(() => {
@@ -47,13 +45,32 @@ export default function DashboardPage() {
   };
 
   const uploadFile = async () => {
-    const input = document.getElementById("picture") as HTMLInputElement;
-    if (!input.files?.length) return;
+    const input = generalFileRef.current;
+    if (!input?.files?.length) return;
 
     const formData = new FormData();
     formData.append("file", input.files[0]);
 
     const res = await fetch("/api/files/create", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: formData,
+    });
+
+    await res.json();
+    fetchFiles();
+  };
+
+  const uploadProfileFile = async () => {
+    const input = profileFileRef.current;
+    if (!input?.files?.length) return;
+
+    const formData = new FormData();
+    formData.append("file", input.files[0]);
+
+    const res = await fetch("/api/files/profile/create", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -74,7 +91,6 @@ export default function DashboardPage() {
       name: directoryName,
       parent: null,
     };
-    console.log(payload);
     const res = await fetch("/api/files/mkdir", {
       method: "POST",
       headers: {
@@ -85,8 +101,7 @@ export default function DashboardPage() {
     });
     await res.json();
     fetchFiles();
-  }
-
+  };
 
   return (
     <SidebarProvider className="flex flex-row min-h-screen">
@@ -96,9 +111,10 @@ export default function DashboardPage() {
           <SidebarTrigger />
           <ModeToggle />
         </div>
-        <div className="flex-1 p-4">
-          <h1>Welcome to Aspose, the best file management tool</h1>
-          <div className="grid w-full max-w-sm items-center gap-1.5 mb-4">
+        <div className="flex-1 p-4 overflow-y-auto">
+          <h1 className="text-2xl font-semibold mb-6">Welcome to Aspose, your file management tool.</h1>
+
+          <div className="grid w-full max-w-xl items-start gap-6 mb-10">
             <Dialog>
               <DialogTrigger className="w-full flex justify-start">
                 <Button variant="outline">
@@ -108,47 +124,67 @@ export default function DashboardPage() {
               </DialogTrigger>
               <DialogContent>
                 <div className="grid gap-4">
-                  <Label htmlFor="directory-name">Directory Name</Label>
+                  <Label htmlFor="directory-name" className="text-base font-medium">Directory Name</Label>
                   <Input
                     id="directory-name"
                     type="text"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                    placeholder="Enter directory name"
                     value={directoryName}
                     onChange={(e) => setDirectoryName(e.target.value)}
+                    placeholder="Enter directory name"
                   />
                   <Button onClick={newDirectory}>Create Directory</Button>
                 </div>
               </DialogContent>
             </Dialog>
-            <div className="w-full flex flex-row items-center justify-between">
-              <div className="relative flex-1">
+
+            <div className="grid gap-2">
+              <Label htmlFor="general-upload" className="text-base font-medium">Upload files for your file structure</Label>
+              <div className="flex items-center gap-4">
                 <input
-                  id="picture"
+                  id="general-upload"
                   type="file"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium"
-                  ref={fileInputRef}
                   onChange={handleFileChange}
+                  className="w-full text-base px-4 py-2 border border-input rounded-md bg-background"
+                  ref={generalFileRef}
                 />
+                <Button onClick={uploadFile} className="h-10">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload
+                </Button>
               </div>
-              <Button className="ml-2" onClick={uploadFile}>
-                <Upload className="mr-2" />
-                Upload
-              </Button>
             </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="profile-upload" className="text-base font-medium">Upload an HTML file for your profile</Label>
+              <div className="flex items-center gap-4">
+                <input
+                  id="profile-upload"
+                  type="file"
+                  accept=".html"
+                  onChange={handleFileChange}
+                  className="w-full text-base px-4 py-2 border border-input rounded-md bg-background"
+                  ref={profileFileRef}
+                />
+                <Button onClick={uploadProfileFile} className="h-10">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload
+                </Button>
+              </div>
+            </div>
+
             {selectedFile && (
-              <p className="text-sm text-muted-foreground mt-1">Selected: {selectedFile.name}</p>
+              <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>
             )}
           </div>
-          {error && <p className="text-red-500">{error}</p>}
+
+          {error && <p className="text-red-500 mb-4">{error}</p>}
 
           <div className="grid grid-cols-2 gap-4">
             <FileTable files={files} />
             <Terminal />
           </div>
-          {loading && <p>Loading...</p>}
         </div>
       </main>
     </SidebarProvider>
-  )
+  );
 }
