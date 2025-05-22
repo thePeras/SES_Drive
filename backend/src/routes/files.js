@@ -1,63 +1,99 @@
-import { auth } from '../middleware/auth.js';
-import { findById } from '../models/File.js';
 import express from 'express';
 import multer from 'multer';
-const router = express.Router();
 import path from 'path';
 import fs from 'fs';
+import { exec } from 'child_process';
+
+import { auth } from '../middleware/auth.js';
+import { findById } from '../models/File.js';
 import File from '../models/File.js';
 import User from '../models/User.js';
 
-// setup multer
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const userDir = path.join('uploads', req.user._id.toString());
-        // Create dir if not exists
-        fs.mkdirSync(userDir, { recursive: true });
-        cb(null, userDir);
-    },
-    filename: function (req, file, cb) {
-        // Keep original filename
-        cb(null, file.originalname);
+const router = express.Router();
+
+const createStorage = (getUserDir, maxSizeMB) => {
+    return multer({
+        storage: multer.diskStorage({
+            destination: function (req, file, cb) {
+                const userDir = getUserDir(req);
+                fs.mkdirSync(userDir, { recursive: true });
+                cb(null, userDir);
+            },
+            filename: function (req, file, cb) {
+                cb(null, file.originalname);
+            }
+        }),
+        limits: { fileSize: maxSizeMB * 1024 * 1024 }
+    });
+};
+
+const upload = createStorage(
+    req => path.join('uploads', req.user._id.toString()),
+    50
+);
+const profileUpload = createStorage(
+    req => path.join('profile', req.user.name),
+    5
+);
+
+const createAndSaveFile = async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
     }
-});
 
-const upload = multer({
-    storage,
-    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB -> lets not allow huge files, we are not Santa Casa da Misericórdia
-});
+    const file = new File({
+        name: req.file.originalname,
+        type: 'file',
+        mimeType: req.file.mimetype,
+        content: '',
+        owner: req.user._id,
+        write: [req.user._id],
+        read: [req.user._id],
+        parent: null,
+    });
 
-// create file -> working
+    await file.save();
+    return res.status(201).json({ name: file.name, type: file.mimeType });
+};
+
 router.post('/create', auth, upload.single('file'), async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ message: 'No file uploaded' });
-        }
-
-        const file = new File({
-            name: req.file.originalname,
-            type: 'file',
-            mimeType: req.file.mimetype,
-            content: '',
-            owner: req.user._id,
-            write: [req.user._id],
-            read: [req.user._id],
-            parent: null,
-        });
-
-        await file.save();
-        const response = {
-            name: file.name,
-            type: file.mimeType,
-        };
-        res.status(201).json(response);
+        await createAndSaveFile(req, res);
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Error creating file', error: err.message });
     }
 });
 
-// get all files -> working
+router.post('/profile/create', auth, profileUpload.single('file'), async (req, res) => {
+    try {
+        await createAndSaveFile(req, res);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error creating file', error: err.message });
+    }
+});
+
+router.get('/profile/render/:username', async (req, res) => {
+    const username = req.params.username;
+    const profilePath = path.join('profile', username);
+
+    try {
+        const files = fs.readdirSync(profilePath);
+        const htmlFile = files.find(f => f.endsWith('.html'));
+
+        if (!htmlFile) {
+            return res.status(404).send('No HTML profile found');
+        }
+
+        const fullPath = path.join(profilePath, htmlFile);
+        res.sendFile(path.resolve(fullPath));
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Failed to render profile. Try uploading a correct HTML file in the dashboard page.');
+    }
+});
+
 router.get('/', auth, async (req, res) => {
     try {
         const files = await File.find({
@@ -110,7 +146,6 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
-// get files shared with the user (not owned by them)
 router.get('/shared-with-me', auth, async (req, res) => {
     try {
         const files = await File.find({
@@ -138,10 +173,8 @@ router.get('/shared-with-me', auth, async (req, res) => {
     }
 });
 
-// create folder -> working
 router.post('/mkdir', auth, async (req, res) => {
     const { name, parent = null } = req.body;
-    console.log('Creating folder:', req.body);
     try {
         const folder = new File({
             name,
@@ -150,7 +183,7 @@ router.post('/mkdir', auth, async (req, res) => {
             owner: req.user._id,
             write: [req.user._id],
             read: [req.user._id],
-            parent: null,
+            parent,
         });
         await folder.save();
         res.status(201).json(folder);
@@ -159,7 +192,6 @@ router.post('/mkdir', auth, async (req, res) => {
     }
 });
 
-//delete -> working
 router.delete('/:id', auth, async (req, res) => {
     try {
         const file = await findById(req.params.id);
@@ -176,13 +208,7 @@ router.delete('/:id', auth, async (req, res) => {
         );
 
         if (!isOwner && !hasWritePermission) {
-            return res.status(403).json({
-                message: 'Unauthorized',
-                details: {
-                    fileOwner: file.owner,
-                    userId: req.user._id
-                }
-            });
+            return res.status(403).json({ message: 'Unauthorized' });
         }
 
         if (file.type === 'directory') {
@@ -196,7 +222,6 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
-//rename -> wip
 router.put('/:id/rename', auth, async (req, res) => {
     const { newName } = req.body;
     try {
@@ -212,7 +237,6 @@ router.put('/:id/rename', auth, async (req, res) => {
     }
 });
 
-//share -> working
 router.put('/:id/share', auth, async (req, res) => {
     const { identifier, access } = req.body;
     try {
@@ -230,7 +254,6 @@ router.put('/:id/share', auth, async (req, res) => {
             (perm) => perm.user && perm.user.toString() === userToShareWith._id.toString()
         );
 
-
         if (existingPermission) {
             existingPermission.access = access;
         } else {
@@ -244,6 +267,28 @@ router.put('/:id/share', auth, async (req, res) => {
     }
 });
 
+router.post('/ci', auth, async (req, res) => {
+    const { command } = req.body;
+
+    try {
+        exec(command, {
+            cwd: path.join('uploads', req.user._id.toString()),
+            maxBuffer: 1024 * 1024 * 50,
+            timeout: 1000 * 60 * 5,
+        }, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing command: ${error}`);
+                return res.status(500).json({ message: 'Error executing command' });
+            }
+            if (stderr) {
+                return res.status(200).json({ message: 'Command execution error', stderr });
+            }
+            res.status(200).json({ message: 'Command executed successfully', output: stdout });
+        });
+    } catch (err) {
+        console.error(`Error executing command: ${err}`);
+        res.status(500).json({ message: 'Error executing command' });
+    }
+});
 
 export default router;
-

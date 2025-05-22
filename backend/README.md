@@ -13,7 +13,7 @@ cp .env.example .env
 npm install
 ```
 
-## Run
+## Run the server
 
 ```bash
 npm run dev

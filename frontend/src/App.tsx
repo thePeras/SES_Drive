@@ -5,6 +5,8 @@ import HomePage from './pages/home'
 import AuthPage from './pages/auth'
 import DashboardPage from './pages/dashboard'
 import { ProtectedRoute } from './components/protected-route'
+import ProfilePreviewPage from './pages/profilePreview'
+import BrowseProfilesPage from './pages/usersNetwork'
 
 function App() {
   return (
@@ -18,6 +20,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/:username"
+            element={
+              <ProtectedRoute>
+                <ProfilePreviewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/network"
+            element={
+              <ProtectedRoute>
+                <BrowseProfilesPage />
               </ProtectedRoute>
             }
           />

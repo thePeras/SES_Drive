@@ -14,26 +14,33 @@ router.post('/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return res.status(400).json({ message: 'Email already in use' });
     }
 
-    // Create new user
+    const existingName = await User.findOne({ name });
+    if (existingName) {
+      return res.status(400).json({ message: 'Username already exists. Please choose another one.' });
+    }
+
     const user = new User({ email, password, name });
     await user.save();
 
-    // Generate token
     const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
+        { userId: user._id },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '24h' }
     );
 
     res.status(201).json({ user, token });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return res.status(400).json({ message: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists` });
+    }
+
+    res.status(500).json({ message: 'Registration failed', error: error.message });
   }
 });
 

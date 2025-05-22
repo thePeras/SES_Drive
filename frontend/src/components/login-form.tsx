@@ -43,6 +43,7 @@ export function LoginForm({
     .then(data => {
       if (data.token) {
         localStorage.setItem('token', data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
         onSuccess();
       } else {
         setError(data.message || 'Login failed');
