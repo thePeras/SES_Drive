@@ -1,3 +1,13 @@
+## Development Setup
+
+
+### Run docker containers
+
+```bash
+./run-dev.sh
+```
+
+
 ## Reqs
 
 **Interface:**
@@ -28,8 +38,8 @@ communication are not the focus of this project.
 ◦ A user's personal web page is public.
 
 ## Deliverable dates
-- Application Demo: May 23rd
-- Report submission: May 30th
+- Application Demo: May 30th
+- Report submission: Jun 6th
 
 ## Proposed stack:
 

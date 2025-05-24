@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./backend
+    command: npm run dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    ports:
+      - "5500:3000"
+    environment:
+      - NODE_ENV=development
+    networks:
+      - backendnet
+
+  root-backend:
+    build:
+      context: ./root-backend
+    command: npm run dev
+    volumes:
+      - ./root-backend:/app
+      - /app/node_modules
+    privileged: true
+    user: root
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+    networks:
+      - backendnet
+
+networks:
+  backendnet:
+    driver: bridge

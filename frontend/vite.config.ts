@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         '/api': {
-          target: `http://localhost:${env.VITE_API_PORT || 5000}`,
+          target: `http://localhost:${env.VITE_API_PORT || 5500}`,
           changeOrigin: true,
           secure: false //TODO: Change later, for deliver / production, to enable SSL
         }
