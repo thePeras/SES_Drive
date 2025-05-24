@@ -8,6 +8,8 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+      - shared-socket:/shared
+      - ./backend/uploads:/uploads
     ports:
       - "5500:3000"
     environment:
@@ -22,6 +24,8 @@ services:
     volumes:
       - ./root-backend:/app
       - /app/node_modules
+      - shared-socket:/shared
+      - ./backend/uploads:/uploads
     privileged: true
     user: root
     ports:
@@ -30,6 +34,10 @@ services:
       - NODE_ENV=development
     networks:
       - backendnet
+
+volumes:
+  shared-uploads:
+  shared-socket:
 
 networks:
   backendnet:

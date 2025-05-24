@@ -7,6 +7,10 @@
 ./run-dev.sh
 ```
 
+## Notes
+
+- Created users are not persisted, so you will need to create them again after restarting the containers.
+
 
 ## Reqs
 
