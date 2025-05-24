@@ -1,45 +1,78 @@
 import express from "express";
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
 import { auth } from "../middleware/auth.js";
 import dotenv from "dotenv";
+import { rootBackend } from "../rootBackend.js";
 
 dotenv.config();
 
-
 const router = express.Router();
 
-// Register route
+//TODO: Move this to a validation file
+function isValidUnixUsername(username) {
+  const maxLength = 32;
+  const regex = /^[a-z][a-z0-9_-]*$/;
+
+  return typeof username === 'string' &&
+    username.length > 0 &&
+    username.length <= maxLength &&
+    regex.test(username);
+}
+
+//TODO: Move this to a validation file
+//TODO: Define de password policy
+function isValidUnixPassword(password, username = '') {
+  const minLength = 5;
+  const maxLength = 64;
+
+  if (typeof password !== 'string' || password.length < minLength || password.length > maxLength) {
+    return false;
+  }
+
+  return true;
+}
+
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { username, password } = req.body;
 
-    const existingEmail = await User.findOne({ email });
-    if (existingEmail) {
-      return res.status(400).json({ message: 'Email already in use' });
+    if (!isValidUnixUsername(username)) {
+      return res.status(400).json({ message: 'Invalid username. Must be alphanumeric, start with a letter, and can include underscores or hyphens.' });
     }
 
-    const existingName = await User.findOne({ name });
-    if (existingName) {
-      return res.status(400).json({ message: 'Username already exists. Please choose another one.' });
+    if (!isValidUnixPassword(password, username)) {
+      return res.status(400).json({ message: 'Invalid password. Must be 5-64 characters long' });
     }
 
-    const user = new User({ email, password, name });
-    await user.save();
+    // TODO: match the desired password with common on the internet and tell the user if it matches a common password heuheuhue
 
-    const token = jwt.sign(
-        { userId: user._id },
-        process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '24h' }
-    );
+    // Check if user already exists
+    rootBackend.get(`/is-username-available/${username}`)
+      .then(response => {
+        if (!response.data) {
+          return res.status(400).json({ message: 'Username already exists' });
+        }
+      })
+      .catch(error => {
+        return res.status(500).json({ message: 'Error checking username availability', error: error.message });
+      });
 
-    res.status(201).json({ user, token });
+    // Create user
+    rootBackend.post('/create-user', { username, password })
+      .then(() => {
+        console.log('User created successfully');
+      })
+      .catch(error => {
+        console.error('Error creating user:', error);
+        return res.status(500).json({ message: 'Error creating user', error: error.message });
+      }
+      );
+
+    // login -> extract to a method
+    const token = generateJWTToken(username)
+
+    res.status(201).json({ token });
   } catch (error) {
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res.status(400).json({ message: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists` });
-    }
-
     res.status(500).json({ message: 'Registration failed', error: error.message });
   }
 });
@@ -47,32 +80,26 @@ router.post('/register', async (req, res) => {
 // Login route
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
-    // Find user
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    const response = await rootBackend.post('/authenticate', { username, password })
+    if (response.status !== 200) {
+      return res.status(401).json({ message: 'Invalid username or password' });
     }
 
-    // Check password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
+    const token = generateJWTToken(username);
 
-    // Generate token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
-    );
-
-    res.json({ user, token });
+    res.json({ token });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
+
+const generateJWTToken = (username) => jwt.sign(
+  { username },
+  process.env.JWT_SECRET || 'your-secret-key',
+  { expiresIn: '24h' }
+);
 
 // Get user profile (protected route)
 router.get('/profile', auth, async (req, res) => {

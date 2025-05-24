@@ -8,7 +8,7 @@ import path from 'path';
 import fs from 'fs';
 import File from '../models/File.js';
 import { exec } from 'child_process';
-import axios from 'axios';
+import { rootBackend } from '../rootBackend.js';
 
 const createStorage = (getUserDir, maxSizeMB) => {
     return multer({
@@ -27,7 +27,7 @@ const createStorage = (getUserDir, maxSizeMB) => {
 };
 
 const upload = createStorage(
-    req => path.join('uploads', req.user._id.toString()),
+    req => path.join('uploads', req.username),
     50
 );
 const profileUpload = createStorage(
@@ -57,30 +57,12 @@ const createAndSaveFile = async (req, res) => {
 
 router.post('/create', auth, upload.single('file'), async (req, res) => {
     try {
-        //TODO: To extract
-        const SOCKET_PATH = '/shared/root-backend.sock';
-        const rootBackendAxios = axios.create({
-            socketPath: SOCKET_PATH,
-            baseURL: 'http://localhost',
-        });
+        const filePath = path.resolve('/uploads', req.username, req.file.originalname);
 
         try {
-            const createUserResponse = await rootBackendAxios.post('/create-user', {
-                username: "john_doe",
-                password: 123123,
-            });
-            console.log('User created successfully:', createUserResponse.data);
-        } catch (error) {
-            console.error('Error creating user:', error);
-            return res.status(500).json({ message: 'Error creating user', error: error.message });
-        }
-
-        const filePath = path.resolve('/uploads', req.user._id.toString(), req.file.originalname);
-
-        try {
-            const moveFileResponse = await rootBackendAxios.post('/upload-user-file', {
+            const moveFileResponse = await rootBackend.post('/upload-user-file', {
                 tempPath: filePath,
-                username: "john_doe",
+                username: req.username,
                 originalName: req.file.originalname,
             });
             console.log('File moved successfully:', moveFileResponse.data);
@@ -131,15 +113,8 @@ router.get('/profile/render/:username', async (req, res) => {
 // get all files -> working
 router.get('/', auth, async (req, res) => {
     try {
-        //TODO: To extract
-        const SOCKET_PATH = '/shared/root-backend.sock';
-        const rootBackendAxios = axios.create({
-            socketPath: SOCKET_PATH,
-            baseURL: 'http://localhost',
-        });
-
         try {
-            const createUserResponse = await rootBackendAxios.get('/list-user-files/john_doe');
+            const createUserResponse = await rootBackend.get('/list-user-files/' + req.username);
             return res.status(200).json(createUserResponse.data);
 
         } catch (error) {
@@ -157,17 +132,19 @@ router.post('/mkdir', auth, async (req, res) => {
     const { name, parent = null } = req.body;
     console.log('Creating folder:', req.body);
     try {
-        const folder = new File({
+        rootBackend.post('/create-folder', {
             name,
-            type: 'directory',
-            content: '',
-            owner: req.user._id,
-            write: [req.user._id],
-            read: [req.user._id],
-            parent: null,
-        });
-        await folder.save();
-        res.status(201).json(folder);
+            parent,
+            username: req.username
+        })
+            .then(response => {
+                console.log('Folder created successfully:', response.data);
+                return res.status(201).json(response.data);
+            })
+            .catch(error => {
+                console.error('Error creating folder:', error.message);
+                return res.status(500).json({ message: 'Error creating folder', error: error.message });
+            });
     } catch (err) {
         res.status(500).json({ message: 'Error creating folder', error: err });
     }

@@ -20,7 +20,7 @@ export function LoginForm({
   setShowLogin: (show: boolean) => void;
   onSuccess: () => void;
 }) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,14 +28,14 @@ export function LoginForm({
   const requestLogin = () => {
     setIsLoading(true);
     setError('');
-    console.log(email, password);
+    
     fetch('/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        email,
+        username,
         password
       })
     })
@@ -43,7 +43,6 @@ export function LoginForm({
     .then(data => {
       if (data.token) {
         localStorage.setItem('token', data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
         onSuccess();
       } else {
         setError(data.message || 'Login failed');
@@ -79,13 +78,11 @@ export function LoginForm({
           }}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-3">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
+                  id="username"
                   required
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => setUsername(e.target.value)}
                   disabled={isLoading}
                 />
               </div>

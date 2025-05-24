@@ -21,7 +21,6 @@ export function RegisterForm({
     onSuccess: () => void;
 }) {
     const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -36,15 +35,14 @@ export function RegisterForm({
             setIsLoading(false);
             return;
         }
-        console.log(email, password, confirmPassword);
+        console.log(password, confirmPassword);
         fetch('/api/auth/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                name,
-                email,
+                username: name,
                 password,
             })
         })
@@ -52,7 +50,6 @@ export function RegisterForm({
             .then(data => {
                 if (data.token) {
                     localStorage.setItem('token', data.token);
-                    localStorage.setItem("user", JSON.stringify(data.user));
                     onSuccess();
                 } else {
                     setError(data.message || 'Registration failed');
@@ -94,17 +91,6 @@ export function RegisterForm({
                                     type="text" 
                                     required 
                                     onChange={(e) => setName(e.target.value)}
-                                    disabled={isLoading}
-                                />
-                            </div>
-                            <div className="grid gap-3">
-                                <Label htmlFor="email">Email</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    placeholder="m@example.com"
-                                    required
-                                    onChange={(e) => setEmail(e.target.value)}
                                     disabled={isLoading}
                                 />
                             </div>
