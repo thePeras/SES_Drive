@@ -1,10 +1,29 @@
+## Architecture
+
+### frontend
+- Provides a web interface for users to interact with their files and directories
+
+### backend
+Non sudo server:
+- Manages authentication and authorization
+- Provides a RESTful API for file and directory operations
+- Non sudo server executions like creating, deleting, and renaming files and directories
+
+### sudo backend
+Sudo server:
+- Manage unix users
+- Manage ACL (Access Control Lists) for files and directories
+
 ## Development Setup
 
-
-### Run docker containers
+### Run docker container for the backend
 
 ```bash
-./run-dev.sh
+docker-compose build --no-cache
+```
+
+```bash
+docker-compose up
 ```
 
 ## Notes

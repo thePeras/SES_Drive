@@ -7,7 +7,6 @@ const router = express.Router();
 import path from 'path';
 import fs from 'fs';
 import File from '../models/File.js';
-import { exec } from 'child_process';
 import { rootBackend } from '../rootBackend.js';
 
 const createStorage = (getUserDir, maxSizeMB) => {
@@ -112,18 +111,29 @@ router.get('/profile/render/:username', async (req, res) => {
 
 // get all files -> working
 router.get('/', auth, async (req, res) => {
-    try {
-        try {
-            const createUserResponse = await rootBackend.get('/list-user-files/' + req.username);
-            return res.status(200).json(createUserResponse.data);
+    const username = req.username;
+    const userDir = `/home/${username}`;
 
-        } catch (error) {
-            console.error('Error listing user files:', error);
-            return res.status(500).json({ message: 'Error listing user files', error: error.message });
-        }
+    try {
+        fs.readdir(userDir, { withFileTypes: true }, (err, dirEntries) => {
+            if (err) {
+                console.error('Error reading user directory:', err);
+                return res.status(500).json({ error: 'Failed to read user directory', details: err.message });
+            }
+
+            const items = dirEntries
+                .filter(entry => !entry.name.startsWith('.')) // ignore dotfiles
+                .map(entry => ({
+                    name: entry.name,
+                    type: entry.isDirectory() ? 'directory' : 'file'
+                }));
+
+            res.json(items);
+        });
 
     } catch (err) {
-        res.status(500).json({ message: 'Failed to fetch files', error: err });
+        console.error('Error reading user directory:', err);
+        res.status(500).json({ error: 'Failed to list files', details: err.message });
     }
 });
 
@@ -204,33 +214,24 @@ router.put('/:id/share', auth, async (req, res) => {
 
 //ci execution
 router.post('/ci', auth, async (req, res) => {
-    const { command } = req.body;
-
     try {
-        // Execute the command
-        exec(command, {
-            cwd: path.join('uploads', req.user._id.toString()),
-            maxBuffer: 1024 * 1024 * 50, // 50MB buffer size
-            timeout: 1000 * 60 * 5, // 5 minutes timeout
-            //uid: req.user._id, TODO: config users
-        },
-            (error, stdout, stderr) => {
-                if (error) {
-                    console.error(`Error executing command: ${error}`);
-                    return res.status(500).json({ message: 'Error executing command' });
-                }
-                if (stderr) {
-                    console.error(`stderr: ${stderr}`);
-                    return res.status(200).json({ message: 'Command execution error', stderr });
-                }
-                console.log(`stdout: ${stdout}`);
-                res.status(200).json({ message: 'Command executed successfully', output: stdout });
-            });
+        const { command } = req.body;
+        if (!command) {
+            return res.status(400).json({ message: 'Command is required' });
+        }
+        const execResponse = await rootBackend.post('/execute-command', {
+            command,
+            username: req.username
+        });
+        if (execResponse.status !== 200) {
+            return res.status(500).json({ message: 'Error executing command' });
+        }
+        if(execResponse.data.error) return res.status(200).json({ message: 'Error executing command', error: execResponse.data.error });
+        res.status(200).json({ message: 'Command executed successfully', output: execResponse.data.output });
     } catch (err) {
         console.error(`Error executing command: ${err}`);
         res.status(500).json({ message: 'Error executing command' });
     }
-}
-);
+});
 
 export default router;

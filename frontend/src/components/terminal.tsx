@@ -12,7 +12,12 @@ type CommandType = {
     output: React.ReactNode
 }
 
-export function Terminal() {
+type Props = {
+    fetchFiles: () => void
+}
+
+// fetchFiles from parent
+export function Terminal({ fetchFiles }: Props) {
     const [input, setInput] = useState("")
     const [commands, setCommands] = useState<CommandType[]>([
         {
@@ -112,6 +117,11 @@ export function Terminal() {
         }
 
         const data = await response.json()
+
+        if (data.error) return <p className="text-destructive whitespace-pre-wrap">{data.error}</p>
+
+        fetchFiles();
+
         return <p className="text-muted-foreground whitespace-pre-wrap">{data.output}</p>
     }
 

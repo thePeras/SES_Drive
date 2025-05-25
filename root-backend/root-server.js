@@ -1,6 +1,6 @@
 const express = require('express');
 const { exec } = require('child_process');
-const { spawn } = require('child_process');
+const { execSync } = require('child_process');
 const fs = require('fs');
 const pam = require('authenticate-pam');
 
@@ -8,7 +8,7 @@ const app = express();
 app.use(express.json());
 
 // Setup unix socket for local communication
-const SOCKET_PATH = '/shared/root-backend.sock';
+const SOCKET_PATH = '/app/shared/root-backend.sock';
 
 // Clean up old socket if it exists
 if (fs.existsSync(SOCKET_PATH)) {
@@ -58,14 +58,13 @@ app.post('/authenticate', (req, res) => {
         });
 });
 
-// TODO: This is fucking dangerous, we need to ensure this not exposed to the public internet and its securely configured
 app.post('/create-user', (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
         return res.status(400).json({ error: 'username and password required' });
     }
 
-    const command = `useradd -m ${username} && echo "${username}:${password}" | chpasswd`;
+    const command = `useradd -m -s /bin/bash ${username} && echo "${username}:${password}" | chpasswd`;
 
     exec(command, (err, stdout, stderr) => {
         if (err) {
@@ -79,7 +78,9 @@ app.post('/upload-user-file', (req, res) => {
     const { username, tempPath, originalName } = req.body;
     const targetPath = `/home/${username}/${originalName}`;
 
-    fs.copyFile(tempPath, targetPath, (copyErr) => {
+    const fullPath = `/app/backend/${tempPath}`;
+
+    fs.copyFile(fullPath, targetPath, (copyErr) => {
         if (copyErr) {
             console.error('Error copying file:', copyErr);
             return res.status(500).json({ error: 'Copy failed', details: copyErr.message });
@@ -88,7 +89,6 @@ app.post('/upload-user-file', (req, res) => {
         fs.unlink(tempPath, (unlinkErr) => {
             if (unlinkErr) {
                 console.error('Error deleting temp file:', unlinkErr);
-                // Not fatal, continue
             }
 
             const aclCmd = `setfacl -m u:${username}:r-- "${targetPath}" && chmod 600 "${targetPath}"`;
@@ -104,7 +104,7 @@ app.post('/upload-user-file', (req, res) => {
     });
 });
 
-///create-folder: name, parent, username
+///create-folder
 app.post('/create-folder', (req, res) => {
     const { name, username } = req.body;
     if (!name || !username) {
@@ -132,31 +132,38 @@ app.post('/create-folder', (req, res) => {
     });
 });
 
-app.get('/list-user-files/:username', async (req, res) => {
-    const { username } = req.params;
-    const userDir = `/home/${username}`;
+app.post('/execute-command', (req, res) => {
+    const { command, username } = req.body;
 
-    try {
-        fs.readdir(userDir, { withFileTypes: true }, (err, dirEntries) => {
-            if (err) {
-                console.error('Error reading user directory:', err);
-                return res.status(500).json({ error: 'Failed to read user directory', details: err.message });
-            }
-
-            const items = dirEntries
-                .filter(entry => !entry.name.startsWith('.')) // ignore dotfiles
-                .map(entry => ({
-                    name: entry.name,
-                    type: entry.isDirectory() ? 'directory' : 'file'
-                }));
-
-            res.json(items);
-        });
-
-    } catch (err) {
-        console.error('Error reading user directory:', err);
-        res.status(500).json({ error: 'Failed to list files', details: err.message });
+    if (!command) {
+        return res.status(400).json({ message: 'Command is required' });
     }
+
+    // TODO: move to a separated middleware
+    const userUid = execSync(`id -u ${username}`, { encoding: 'utf8' }).trim();
+    if (!userUid) {
+        return res.status(404).json({ message: 'User not found' });
+    }
+
+    const userUidInt = parseInt(userUid, 10);
+
+    exec(command,
+        {
+            cwd: `/home/${username}`,
+            uid: userUidInt,
+        },
+        (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing command: ${error.message}`);
+                return res.status(200).json({ message: 'Error executing command', error: error.message });
+            }
+            if (stderr) {
+                console.error(`Command stderr: ${stderr}`);
+                return res.status(500).json({ message: 'Command execution error', error: stderr });
+            }
+            console.log(`Command executed successfully:\n${stdout}`);
+            return res.json({ message: 'Command executed successfully', output: stdout });
+        });
 });
 
 app.listen(SOCKET_PATH, () => {

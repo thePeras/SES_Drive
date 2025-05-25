@@ -181,7 +181,7 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <FileTable files={files} />
-            <Terminal />
+            <Terminal fetchFiles={fetchFiles}/>
           </div>
         </div>
       </main>

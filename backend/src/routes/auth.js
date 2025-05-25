@@ -47,30 +47,20 @@ router.post('/register', async (req, res) => {
     // TODO: match the desired password with common on the internet and tell the user if it matches a common password heuheuhue
 
     // Check if user already exists
-    rootBackend.get(`/is-username-available/${username}`)
-      .then(response => {
-        if (!response.data) {
-          return res.status(400).json({ message: 'Username already exists' });
-        }
-      })
-      .catch(error => {
-        return res.status(500).json({ message: 'Error checking username availability', error: error.message });
-      });
+    const availableResponse = await rootBackend.get(`/is-username-available/${username}`);
+    console.log(availableResponse.data);
+    if (!availableResponse.data) {
+      return res.status(400).json({ message: 'Username already exists' });
+    }
 
-    // Create user
-    rootBackend.post('/create-user', { username, password })
-      .then(() => {
-        console.log('User created successfully');
-      })
-      .catch(error => {
-        console.error('Error creating user:', error);
-        return res.status(500).json({ message: 'Error creating user', error: error.message });
-      }
-      );
+    const createUserResponse = await rootBackend.post('/create-user', { username, password });
+    if (createUserResponse.status !== 200) {
+      return res.status(500).json({ message: 'Error creating user', error: createUserResponse.data });
+    }
 
-    // login -> extract to a method
+    console.log('User created successfully');
+
     const token = generateJWTToken(username)
-
     res.status(201).json({ token });
   } catch (error) {
     res.status(500).json({ message: 'Registration failed', error: error.message });
