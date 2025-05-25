@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { ChevronRight, X } from "lucide-react"
+import { Button } from "./ui/button"
 
 type CommandType = {
     id: number
@@ -13,11 +14,12 @@ type CommandType = {
 }
 
 type Props = {
-    fetchFiles: () => void
+    fetchFiles: () => void,
+    hideTerminal: () => void
 }
 
 // fetchFiles from parent
-export function Terminal({ fetchFiles }: Props) {
+export function Terminal({ fetchFiles, hideTerminal }: Props) {
     const [input, setInput] = useState("")
     const [commands, setCommands] = useState<CommandType[]>([
         {
@@ -189,13 +191,15 @@ export function Terminal({ fetchFiles }: Props) {
             <div className="flex items-center justify-between border-b border-border bg-muted/20 px-4 py-2">
                 <div className="text-sm font-medium">Terminal</div>
                 <div className="flex items-center space-x-2">
-                    <button
-                        onClick={() => setCommands([])}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={hideTerminal}
                         className="rounded-full p-1 hover:bg-muted/20"
                         aria-label="Clear terminal"
                     >
                         <X className="h-4 w-4" />
-                    </button>
+                    </Button>
                 </div>
             </div>
             <CardContent className="p-0">

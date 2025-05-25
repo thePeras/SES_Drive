@@ -103,6 +103,8 @@ export default function DashboardPage() {
     fetchFiles();
   };
 
+  const [showTerminal, setShowTerminal] = useState(false);
+
   return (
     <SidebarProvider className="flex flex-row min-h-screen">
       <AppSidebar />
@@ -179,9 +181,17 @@ export default function DashboardPage() {
 
           {error && <p className="text-red-500 mb-4">{error}</p>}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex justify-end mb-5">
+            {!showTerminal &&
+              <Button onClick={() => setShowTerminal(prev => !prev)}>
+                Open Terminal
+              </Button>
+            }
+          </div>
+
+          <div className={`grid ${showTerminal ? "grid-cols-2" : "grid-cols-1"} gap-4`}>
             <FileTable files={files} />
-            <Terminal fetchFiles={fetchFiles}/>
+            {showTerminal && <Terminal fetchFiles={fetchFiles} hideTerminal={() => setShowTerminal(false)} />}
           </div>
         </div>
       </main>

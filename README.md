@@ -18,17 +18,19 @@ Sudo server:
 
 ### Run docker container for the backend
 
+If not build yet or changes to packages were made, run:
 ```bash
 docker-compose build --no-cache
 ```
 
+To start the backend watching for changes,
 ```bash
 docker-compose up
 ```
 
 ## Notes
 
-- Created users are not persisted, so you will need to create them again after restarting the containers.
+- Created users may not persisted when restarting the backend.
 
 
 ## Reqs
