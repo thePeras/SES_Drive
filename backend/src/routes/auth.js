@@ -25,35 +25,43 @@ function isValidUnixPassword(password, username = '') {
   const minLength = 5;
   const maxLength = 64;
 
-  if (typeof password !== 'string' || password.length < minLength || password.length > maxLength) {
-    return false;
-  }
+  return !(typeof password !== 'string' || password.length < minLength || password.length > maxLength);
 
-  return true;
+
 }
+
 
 router.post('/register', async (req, res) => {
   try {
     const { username, password } = req.body;
+    console.log('Received:', { username, password });
 
     if (!isValidUnixUsername(username)) {
+      console.log('Invalid username');
       return res.status(400).json({ message: 'Invalid username. Must be alphanumeric, start with a letter, and can include underscores or hyphens.' });
     }
 
     if (!isValidUnixPassword(password, username)) {
+      console.log('Invalid password');
       return res.status(400).json({ message: 'Invalid password. Must be 5-64 characters long' });
     }
 
     // TODO: match the desired password with common on the internet and tell the user if it matches a common password heuheuhue
 
     // Check if user already exists
+    console.log('Checking username availability...');
     const availableResponse = await rootBackend.get(`/is-username-available/${username}`);
-    console.log(availableResponse.data);
+    console.log('Available response:', availableResponse.data);
+
     if (!availableResponse.data) {
+      console.log('Username already exists');
       return res.status(400).json({ message: 'Username already exists' });
     }
 
+    console.log('Creating user...');
     const createUserResponse = await rootBackend.post('/create-user', { username, password });
+    console.log('Create user response:', createUserResponse.status, createUserResponse.data);
+
     if (createUserResponse.status !== 200) {
       return res.status(500).json({ message: 'Error creating user', error: createUserResponse.data });
     }
@@ -63,9 +71,11 @@ router.post('/register', async (req, res) => {
     const token = generateJWTToken(username)
     res.status(201).json({ token });
   } catch (error) {
+    console.error('Registration failed:', error);
     res.status(500).json({ message: 'Registration failed', error: error.message });
   }
 });
+
 
 // Login route
 router.post('/login', async (req, res) => {

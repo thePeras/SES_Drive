@@ -2,6 +2,7 @@ const express = require('express');
 const { exec } = require('child_process');
 const { execSync } = require('child_process');
 const fs = require('fs');
+const path = require('path');
 const pam = require('authenticate-pam');
 
 const app = express();
@@ -9,6 +10,8 @@ app.use(express.json());
 
 // Setup unix socket for local communication
 const SOCKET_PATH = '/app/shared/root-backend.sock';
+
+fs.mkdirSync(path.dirname(SOCKET_PATH), { recursive: true });
 
 // Clean up old socket if it exists
 if (fs.existsSync(SOCKET_PATH)) {
