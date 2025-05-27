@@ -7,12 +7,16 @@ services:
       - "5500:3000" # Only the public backend port is exposed
     privileged: true
     volumes:
-      - .:/app
-      - /app/root-backend/node_modules
-      - /app/backend/node_modules
+        - .:/app
+        - shared-data:/app/shared
+        - /app/root-backend/node_modules
+        - /app/backend/node_modules
     networks:
       - backendnet
 
 networks:
   backendnet:
     driver: bridge
+
+volumes:
+  shared-data:

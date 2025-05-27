@@ -6,7 +6,6 @@ import multer from 'multer';
 const router = express.Router();
 import path from 'path';
 import fs from 'fs';
-import File from '../models/File.js';
 import { rootBackend } from '../rootBackend.js';
 
 const createStorage = (getUserDir, maxSizeMB) => {
@@ -29,6 +28,7 @@ const upload = createStorage(
     req => path.join('uploads', req.username),
     50
 );
+const profileUpload = multer({ storage: multer.memoryStorage() });
 
 router.post('/create', auth, upload.single('file'), async (req, res) => {
     try {
@@ -53,43 +53,27 @@ router.post('/create', auth, upload.single('file'), async (req, res) => {
     }
 });
 
-router.post('/profile/create', auth, async (req, res) => {
+router.post('/profile/create', auth, profileUpload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded' });
         }
-
         if (!req.file.originalname.endsWith('.html')) {
             return res.status(400).json({ message: 'Only HTML files are allowed for upload.' });
         }
 
-        const filePath = path.resolve('profile', req.username, req.file.originalname);
+        const htmlContent = req.file.buffer.toString('utf8');
 
-        const htmlContent = fs.readFileSync(filePath, 'utf8');
+        const uploadResponse = await rootBackend.post('/upload-profile', {
+            username: req.username,
+            htmlContent: htmlContent
+        });
 
-        try {
-            const uploadResponse = await rootBackend.post('/upload-profile', {
-                username: req.username,
-                htmlContent: htmlContent
-            });
-
-            console.log('Profile uploaded successfully:', uploadResponse.data);
-
-            fs.unlinkSync(filePath);
-
-            return res.status(201).json({
-                message: 'Profile uploaded successfully',
-                profilePath: uploadResponse.data.profilePath
-            });
-        } catch (error) {
-            console.error('Error uploading profile:', error.message);
-            return res.status(500).json({
-                message: 'Error uploading profile',
-                error: error.response?.data?.error || error.message
-            });
-        }
+        return res.status(201).json({
+            message: 'Profile uploaded successfully',
+            profilePath: uploadResponse.data.profilePath
+        });
     } catch (err) {
-        console.error('Unexpected error:', err);
         res.status(500).json({ message: 'Error creating profile', error: err.message });
     }
 });

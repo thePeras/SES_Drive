@@ -243,3 +243,29 @@ app.get('/profile/:username', (req, res) => {
         res.send(htmlContent);
     });
 });
+
+app.get('/users', (req, res) => {
+    fs.readFile('/etc/passwd', 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading users file:', err);
+            return res.status(500).json({ error: 'Failed to read user list' });
+        }
+
+        // Not the best way to filter our users, lets just not create a user called appuser xD
+        const exclude = ['sudoer', 'nobody', 'node', 'appuser'];
+
+        const users = data
+            .split('\n')
+            .filter(line => line && !line.startsWith('#'))
+            .map(line => {
+                const parts = line.split(':');
+                return { username: parts[0], uid: parseInt(parts[2], 10) };
+            })
+            .filter(user =>
+                user.uid >= 1000 && !exclude.includes(user.username)
+            )
+            .map(user => user.username);
+
+        res.json({ users });
+    });
+});
