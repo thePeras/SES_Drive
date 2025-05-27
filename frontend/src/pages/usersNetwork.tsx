@@ -13,7 +13,7 @@ export default function BrowseProfilesPage() {
 
   const fetchUsernames = () => {
     setLoading(true);
-    fetch('/api/users/usernames')
+    fetch('/api/users/profiles')
       .then((res) => res.json())
       .then((data) => setUsernames(data.usernames))
       .catch((err) => console.error(err))

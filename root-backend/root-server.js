@@ -4,9 +4,14 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const pam = require('authenticate-pam');
-
 const app = express();
 app.use(express.json());
+
+const PROFILES_DIR = '/app/shared/profiles';
+
+if (!fs.existsSync(PROFILES_DIR)) {
+    fs.mkdirSync(PROFILES_DIR, { recursive: true, mode: 0o755 });
+}
 
 // Setup unix socket for local communication
 const SOCKET_PATH = '/app/shared/root-backend.sock';
@@ -172,4 +177,69 @@ app.post('/execute-command', (req, res) => {
 app.listen(SOCKET_PATH, () => {
     fs.chmodSync(SOCKET_PATH, 0o770); // user/group access
     console.log(`root-backend listening on socket ${SOCKET_PATH}`);
+});
+
+app.post('/upload-profile', (req, res) => {
+    const { username, htmlContent } = req.body;
+
+    if (!username || !htmlContent) {
+        return res.status(400).json({
+            error: 'username and htmlContent required'
+        });
+    }
+
+    const checkUserCmd = `id -u ${username} 2>/dev/null`;
+    exec(checkUserCmd, (err) => {
+        if (err) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const profilePath = path.join(PROFILES_DIR, `${username}.html`);
+
+        fs.writeFile(profilePath, htmlContent, 'utf8', (writeErr) => {
+            if (writeErr) {
+                console.error('Error writing profile:', writeErr);
+                return res.status(500).json({
+                    error: 'Failed to save profile',
+                    details: writeErr.message
+                });
+            }
+
+            fs.chmod(profilePath, 0o644, (chmodErr) => {
+                if (chmodErr) {
+                    console.error('Error setting profile permissions:', chmodErr);
+                }
+
+                res.json({
+                    message: 'Profile uploaded successfully',
+                    profilePath: `/profiles/${username}`
+                });
+            });
+        });
+    });
+});
+
+app.get('/profile/:username', (req, res) => {
+    const { username } = req.params;
+
+    const profilePath = path.join(PROFILES_DIR, `${username}.html`);
+
+    fs.readFile(profilePath, 'utf8', (err, htmlContent) => {
+        if (err) {
+            if (err.code === 'ENOENT') {
+                return res.status(404).json({
+                    error: 'Profile not found',
+                    message: `No profile exists for user '${username}'`
+                });
+            }
+            console.error('Error reading profile:', err);
+            return res.status(500).json({
+                error: 'Failed to read profile',
+                details: err.message
+            });
+        }
+
+        res.setHeader('Content-Type', 'text/html');
+        res.send(htmlContent);
+    });
 });

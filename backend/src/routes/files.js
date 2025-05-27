@@ -29,30 +29,6 @@ const upload = createStorage(
     req => path.join('uploads', req.username),
     50
 );
-const profileUpload = createStorage(
-    req => path.join('profile', req.user.name),
-    5
-);
-
-const createAndSaveFile = async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ message: 'No file uploaded' });
-    }
-
-    const file = new File({
-        name: req.file.originalname,
-        type: 'file',
-        mimeType: req.file.mimetype,
-        content: '',
-        owner: req.user._id,
-        write: [req.user._id],
-        read: [req.user._id],
-        parent: null,
-    });
-
-    await file.save();
-    return res.status(201).json({ name: file.name, type: file.mimeType });
-};
 
 router.post('/create', auth, upload.single('file'), async (req, res) => {
     try {
@@ -77,34 +53,64 @@ router.post('/create', auth, upload.single('file'), async (req, res) => {
     }
 });
 
-router.post('/profile/create', auth, profileUpload.single('file'), async (req, res) => {
+router.post('/profile/create', auth, async (req, res) => {
     try {
-        await createAndSaveFile(req, res);
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        if (!req.file.originalname.endsWith('.html')) {
+            return res.status(400).json({ message: 'Only HTML files are allowed for upload.' });
+        }
+
+        const filePath = path.resolve('profile', req.username, req.file.originalname);
+
+        const htmlContent = fs.readFileSync(filePath, 'utf8');
+
+        try {
+            const uploadResponse = await rootBackend.post('/upload-profile', {
+                username: req.username,
+                htmlContent: htmlContent
+            });
+
+            console.log('Profile uploaded successfully:', uploadResponse.data);
+
+            fs.unlinkSync(filePath);
+
+            return res.status(201).json({
+                message: 'Profile uploaded successfully',
+                profilePath: uploadResponse.data.profilePath
+            });
+        } catch (error) {
+            console.error('Error uploading profile:', error.message);
+            return res.status(500).json({
+                message: 'Error uploading profile',
+                error: error.response?.data?.error || error.message
+            });
+        }
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Error creating file', error: err.message });
+        console.error('Unexpected error:', err);
+        res.status(500).json({ message: 'Error creating profile', error: err.message });
     }
 });
 
 // get profile file -> working
 router.get('/profile/render/:username', async (req, res) => {
-
     // There is no need for authentication since the profile pages are public in our domain.
     const username = req.params.username;
-    const profilePath = path.join('profile', username);
 
     try {
-        const files = fs.readdirSync(profilePath);
-        const htmlFile = files.find(f => f.endsWith('.html'));
+        const profileResponse = await rootBackend.get(`/profile/${username}`);
 
-        if (!htmlFile) {
-            return res.status(404).send('No HTML profile found');
+        res.setHeader('Content-Type', 'text/html');
+        res.send(profileResponse.data);
+    } catch (error) {
+        console.error('Error fetching profile:', error.message);
+
+        if (error.response?.status === 404) {
+            return res.status(404).send('No HTML profile found for this user');
         }
 
-        const fullPath = path.join(profilePath, htmlFile);
-        res.sendFile(path.resolve(fullPath));
-    } catch (err) {
-        console.error(err);
         res.status(500).send('Failed to render profile. Try uploading a correct HTML file in the dashboard page.');
     }
 });
