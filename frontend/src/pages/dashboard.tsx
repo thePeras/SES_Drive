@@ -9,6 +9,7 @@ import { useRef, useState, ChangeEvent, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Terminal } from "@/components/terminal";
+import { FileViewerDialog } from "@/components/file-viewer";
 
 export type FileItem = {
   name: string;
@@ -22,6 +23,8 @@ export default function DashboardPage() {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [error, setError] = useState('');
   const [directoryName, setDirectoryName] = useState('');
+  const [viewerFile, setViewerFile] = useState<FileItem | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   const fetchFiles = () => {
     fetch('/api/files', {
@@ -80,6 +83,16 @@ export default function DashboardPage() {
 
     await res.json();
     fetchFiles();
+  };
+
+  const handleViewFile = (file: FileItem) => {
+    setViewerFile(file);
+    setIsViewerOpen(true);
+  };
+
+  const closeViewer = () => {
+    setIsViewerOpen(false);
+    setViewerFile(null);
   };
 
   const newDirectory = async () => {
@@ -190,7 +203,12 @@ export default function DashboardPage() {
           </div>
 
           <div className={`grid ${showTerminal ? "grid-cols-2" : "grid-cols-1"} gap-4`}>
-            <FileTable files={files} />
+            <FileTable files={files} onViewFile={handleViewFile} />
+            <FileViewerDialog
+              file={viewerFile} 
+              isOpen={isViewerOpen}
+              onClose={closeViewer}
+            />
             {showTerminal && <Terminal fetchFiles={fetchFiles} hideTerminal={() => setShowTerminal(false)} />}
           </div>
         </div>

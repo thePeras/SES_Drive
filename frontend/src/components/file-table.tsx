@@ -1,13 +1,14 @@
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Download, Folder, Share2, Trash2 } from 'lucide-react';
+import { Download, Eye, Folder, Share2, Trash2 } from 'lucide-react';
 import { FileItem } from '@/pages/dashboard';
 
 interface FileTableProps {
   files: FileItem[];
+  onViewFile?: (file: FileItem) => void;
 }
 
-export function FileTable({ files }: FileTableProps) {
+export function FileTable({ files, onViewFile }: FileTableProps) {
   return (
     <div className="rounded-lg border">
       <Table>
@@ -31,6 +32,16 @@ export function FileTable({ files }: FileTableProps) {
                 <Button size="icon" variant="ghost">
                   <Share2 className="w-4 h-4" />
                 </Button>
+                {file.type !== 'directory' && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onViewFile?.(file)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                )}
                 <Button size="icon" variant="destructive">
                   <Trash2 className="w-4 h-4" />
                 </Button>

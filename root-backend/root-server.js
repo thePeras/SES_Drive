@@ -175,7 +175,7 @@ app.post('/execute-command', (req, res) => {
 });
 
 app.listen(SOCKET_PATH, () => {
-    fs.chmodSync(SOCKET_PATH, 0o770); // user/group access
+    fs.chmodSync(SOCKET_PATH, 0o777); // user/group access
     console.log(`root-backend listening on socket ${SOCKET_PATH}`);
 });
 
@@ -268,4 +268,61 @@ app.get('/users', (req, res) => {
 
         res.json({ users });
     });
+});
+
+// root endpoint to read files from a user's home directory. If paths change we need to update this :/
+app.get('/read-file', (req, res) => {
+    const { username, filename } = req.query;
+
+    if (!username || !filename) {
+        return res.status(400).json({ message: 'Username and filename are required' });
+    }
+
+    const userDir = path.resolve('/home', username);
+    const filePath = path.resolve(userDir, filename);
+
+    if (!filePath.startsWith(userDir)) {
+        return res.status(403).json({ message: 'Access denied' });
+    }
+
+    try {
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ message: 'File not found' });
+        }
+
+        const stats = fs.statSync(filePath);
+        if (!stats.isFile()) {
+            return res.status(400).json({ message: 'Path is not a file' });
+        }
+
+        res.setHeader('Content-Length', stats.size);
+
+        const fileStream = fs.createReadStream(filePath);
+
+        fileStream.on('error', (err) => {
+            console.error('Error streaming file:', err);
+            if (!res.headersSent) {
+                if (err.code === 'EACCES') {
+                    res.status(403).json({ message: 'Permission denied to read file' });
+                } else if (err.code === 'ENOENT') {
+                    res.status(404).json({ message: 'File not found' });
+                } else {
+                    res.status(500).json({ message: 'Error reading file' });
+                }
+            }
+        });
+
+        fileStream.pipe(res);
+
+    } catch (err) {
+        console.error('Error accessing file:', err);
+
+        if (err.code === 'ENOENT') {
+            return res.status(404).json({ message: 'File not found' });
+        } else if (err.code === 'EACCES') {
+            return res.status(403).json({ message: 'Permission denied to access file' });
+        } else {
+            return res.status(500).json({ message: 'Error accessing file', error: err.message });
+        }
+    }
 });

@@ -160,7 +160,40 @@ router.delete('/:id', auth, async (req, res) => {
         await file.remove();
         res.status(200).json({ message: 'File deleted' });
     } catch (err) {
-        res.status(500).json({ message: 'Error deleting file', error: err });
+        res.status(500).json({message: 'Error deleting file', error: err});
+    }
+});
+
+// view file content -> working
+router.get('/view/:filename', auth, async (req, res) => {
+    const filename = req.params.filename;
+    const username = req.username;
+
+    try {
+        const fileResponse = await rootBackend.get('/read-file', {
+            params: { username, filename },
+            responseType: 'stream'
+        });
+
+        if (fileResponse.headers['content-type']) {
+            res.setHeader('Content-Type', fileResponse.headers['content-type']);
+        }
+
+        if (fileResponse.headers['content-length']) {
+            res.setHeader('Content-Length', fileResponse.headers['content-length']);
+        }
+
+        fileResponse.data.pipe(res);
+    } catch (err) {
+        console.error('Error reading file via rootBackend:', err);
+
+        if (err.response?.status === 404) {
+            return res.status(404).json({ message: 'File not found' });
+        } else if (err.response?.status === 403) {
+            return res.status(403).json({ message: 'Permission denied' });
+        } else {
+            return res.status(500).json({ message: 'Error reading file', error: err.message });
+        }
     }
 });
 
