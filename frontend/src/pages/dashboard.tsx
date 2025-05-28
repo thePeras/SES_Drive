@@ -15,6 +15,7 @@ import { FileTable } from "@/components/folder-structure-table";
 export type FileItem = {
   name: string;
   type: string;
+  path?: string;
 };
 
 export default function DashboardPage() {
@@ -36,7 +37,12 @@ export default function DashboardPage() {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     })
       .then((res) => res.json())
-      .then((data) => setFiles(data))
+      .then((data) => {
+        setFiles(data.map((item: FileItem) => ({
+          ...item,
+          path: currentPath, 
+        })));
+      })
       .catch((err) => console.error(err));
   };
 

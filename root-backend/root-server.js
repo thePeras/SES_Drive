@@ -82,11 +82,10 @@ app.post('/create-user', (req, res) => {
     });
 });
 
-app.post('/upload-user-file', (req, res) => {
+app.post('/upload-simple-file', (req, res) => {
     const { username, tempPath, originalName, parent = '' } = req.body;
     const targetPath = path.join('/home', username, parent, originalName);
 
-    // Ensure the target directory exists
     fs.mkdirSync(path.dirname(targetPath), { recursive: true });
 
     const fullPath = `/app/backend/${tempPath}`;
@@ -115,7 +114,7 @@ app.post('/upload-user-file', (req, res) => {
     });
 });
 
-///create-folder
+//create-folder -> working
 app.post('/create-folder', (req, res) => {
     const { name, parent = '', username } = req.body;
     if (!name || !username) {
@@ -130,7 +129,6 @@ app.post('/create-folder', (req, res) => {
             return res.status(500).json({ error: 'Failed to create directory', details: err.message });
         }
 
-        // Set permissions for the user
         const aclCmd = `chown ${username}:${username} "${dirPath}" && setfacl -m u:${username}:rwx "${dirPath}" && chmod 700 "${dirPath}"`;
         exec(aclCmd, (execErr, stdout, stderr) => {
             if (execErr) {
@@ -143,6 +141,7 @@ app.post('/create-folder', (req, res) => {
     });
 });
 
+// executing terminal commands -> working
 app.post('/execute-command', (req, res) => {
     const { command, username, workingDir = '' } = req.body;
 
@@ -182,6 +181,7 @@ app.listen(SOCKET_PATH, () => {
     console.log(`root-backend listening on socket ${SOCKET_PATH}`);
 });
 
+// Endpoint to upload a user's profile HTML content -> working
 app.post('/upload-profile', (req, res) => {
     const { username, htmlContent } = req.body;
 
@@ -222,6 +222,7 @@ app.post('/upload-profile', (req, res) => {
     });
 });
 
+// Endpoint to retrieve a user's profile HTML content -> working
 app.get('/profile/:username', (req, res) => {
     const { username } = req.params;
 
@@ -247,6 +248,7 @@ app.get('/profile/:username', (req, res) => {
     });
 });
 
+// Endpoint to get a list of all users -> working (a filter is being applied to exclude some default system users)
 app.get('/users', (req, res) => {
     fs.readFile('/etc/passwd', 'utf8', (err, data) => {
         if (err) {
@@ -330,6 +332,7 @@ app.get('/read-file', (req, res) => {
     }
 });
 
+// Endpoint to list files and directories in a user's home directory -> working
 app.get('/list-directory', (req, res) => {
     const { username, dirPath = '' } = req.query;
 

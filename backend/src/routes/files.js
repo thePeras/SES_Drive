@@ -33,13 +33,14 @@ const upload = createStorage(
 );
 const profileUpload = multer({storage: multer.memoryStorage()});
 
+// endpoint to create a file in the path -> working
 router.post('/create', auth, upload.single('file'), async (req, res) => {
     try {
         const {parent = ''} = req.body;
         const filePath = path.resolve('/uploads', req.username, parent, req.file.originalname);
 
         try {
-            const moveFileResponse = await rootBackend.post('/upload-user-file', {
+            const moveFileResponse = await rootBackend.post('/upload-simple-file', {
                 tempPath: filePath,
                 username: req.username,
                 originalName: req.file.originalname,
@@ -58,6 +59,7 @@ router.post('/create', auth, upload.single('file'), async (req, res) => {
     }
 });
 
+// endpoint to create a profile file (only allows HTML) -> working
 router.post('/profile/create', auth, profileUpload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
@@ -107,7 +109,7 @@ router.get('/profile/render/:username', async (req, res) => {
 // get all files -> working
 router.get('/', auth, async (req, res) => {
     const username = req.username;
-    const {path: dirPath = ''} = req.query; // Get path from query parameter
+    const {path: dirPath = ''} = req.query; // This allows us to list files in any existing directory
 
     try {
         const response = await rootBackend.get('/list-directory', {
@@ -131,7 +133,6 @@ router.get('/', auth, async (req, res) => {
 // create folder -> working
 router.post('/mkdir', auth, async (req, res) => {
     const { name, parent = '' } = req.body;
-    console.log('Creating folder:', req.body);
 
     try {
         const response = await rootBackend.post('/create-folder', {
@@ -241,8 +242,6 @@ router.post('/ci', auth, async (req, res) => {
         if (!command) {
             return res.status(400).json({ message: 'Command is required' });
         }
-
-        console.log(`Executing command: ${command} in working directory: ${workingDir}`);
 
         const execResponse = await rootBackend.post('/execute-command', {
             command,

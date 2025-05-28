@@ -107,11 +107,14 @@ export function FileViewerDialog({ file, isOpen, onClose }: FileViewerProps) {
       setError("");
 
       try {
-        const response = await fetch(`/api/files/view/${file.name}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
+        const response = await fetch(
+          `/api/files/view/${file.name}?path=${encodeURIComponent(file.path || "")}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Failed to fetch file");
