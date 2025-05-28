@@ -153,7 +153,7 @@ export default function DashboardPage() {
     
     await res.json();
     fetchFiles();
-    setDirectoryName(''); // Clear input
+    setDirectoryName(''); 
     
     toast("Directory created", {
       description: `Directory "${directoryName}" created successfully.`,

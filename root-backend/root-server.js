@@ -177,7 +177,7 @@ app.post('/execute-command', (req, res) => {
 });
 
 app.listen(SOCKET_PATH, () => {
-    fs.chmodSync(SOCKET_PATH, 0o777); // user/group access
+    fs.chmodSync(SOCKET_PATH, 0o770); // user/group access
     console.log(`root-backend listening on socket ${SOCKET_PATH}`);
 });
 
@@ -332,7 +332,7 @@ app.get('/read-file', (req, res) => {
     }
 });
 
-// Endpoint to list files and directories in a user's home directory -> working
+// Endpoint to list files and directories in a user's directory -> working
 app.get('/list-directory', (req, res) => {
     const { username, dirPath = '' } = req.query;
 

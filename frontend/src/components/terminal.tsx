@@ -16,10 +16,9 @@ type CommandType = {
 type Props = {
     fetchFiles: () => void,
     hideTerminal: () => void,
-    currentPath?: string // NEW: Add currentPath prop
+    currentPath?: string 
 }
 
-// fetchFiles from parent
 export function Terminal({ fetchFiles, hideTerminal, currentPath = '' }: Props) {
     const [input, setInput] = useState("")
     const [commands, setCommands] = useState<CommandType[]>([
@@ -138,7 +137,7 @@ export function Terminal({ fetchFiles, hideTerminal, currentPath = '' }: Props) 
             },
             body: JSON.stringify({ 
                 command: cmd,
-                workingDir: currentPath // NEW: Pass current working directory
+                workingDir: currentPath
             }),
         })
 
@@ -218,7 +217,6 @@ export function Terminal({ fetchFiles, hideTerminal, currentPath = '' }: Props) 
         inputRef.current?.focus()
     }
 
-    // NEW: Get the prompt display path
     const getPromptPath = () => {
         if (!currentPath) return '~'
         return `~/${currentPath}`
