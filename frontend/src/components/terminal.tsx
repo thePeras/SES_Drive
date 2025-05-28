@@ -15,11 +15,12 @@ type CommandType = {
 
 type Props = {
     fetchFiles: () => void,
-    hideTerminal: () => void
+    hideTerminal: () => void,
+    currentPath?: string // NEW: Add currentPath prop
 }
 
 // fetchFiles from parent
-export function Terminal({ fetchFiles, hideTerminal }: Props) {
+export function Terminal({ fetchFiles, hideTerminal, currentPath = '' }: Props) {
     const [input, setInput] = useState("")
     const [commands, setCommands] = useState<CommandType[]>([
         {
@@ -44,6 +45,21 @@ export function Terminal({ fetchFiles, hideTerminal }: Props) {
                         <li>
                             <span className="text-primary">whoami</span> - Display current user
                         </li>
+                        <li>
+                            <span className="text-primary">ls</span> - List directory contents
+                        </li>
+                        <li>
+                            <span className="text-primary">pwd</span> - Print working directory
+                        </li>
+                        <li>
+                            <span className="text-primary">cat [file]</span> - Display file contents
+                        </li>
+                        <li>
+                            <span className="text-primary">mkdir [dir]</span> - Create directory
+                        </li>
+                        <li>
+                            <span className="text-primary">touch [file]</span> - Create empty file
+                        </li>
                     </ul>
                 </div>
             ),
@@ -60,9 +76,6 @@ export function Terminal({ fetchFiles, hideTerminal }: Props) {
         const command = args[0].toLowerCase()
 
         switch (command) {
-            // TODO: Add the most relevant commands, which are the binnaries associated with 
-            // cat, ls, cd, mkdir, rm, touch, cp, mv, echo, date, whoami?
-
             case "help":
                 return (
                     <div className="text-muted-foreground">
@@ -80,6 +93,21 @@ export function Terminal({ fetchFiles, hideTerminal }: Props) {
                             <li>
                                 <span className="text-primary">whoami</span> - Display current user
                             </li>
+                            <li>
+                                <span className="text-primary">ls</span> - List directory contents
+                            </li>
+                            <li>
+                                <span className="text-primary">pwd</span> - Print working directory
+                            </li>
+                            <li>
+                                <span className="text-primary">cat [file]</span> - Display file contents
+                            </li>
+                            <li>
+                                <span className="text-primary">mkdir [dir]</span> - Create directory
+                            </li>
+                            <li>
+                                <span className="text-primary">touch [file]</span> - Create empty file
+                            </li>
                         </ul>
                     </div>
                 )
@@ -89,14 +117,15 @@ export function Terminal({ fetchFiles, hideTerminal }: Props) {
                 }, 100)
                 return null
 
-            default:
-                return executeRemoteCommand(trimmedCmd)
-
+            case "pwd":
                 return (
-                    <p className="text-destructive">
-                        Command not found: {command}. Type &apos;help&apos; to see available commands.
+                    <p className="text-muted-foreground">
+                        /home/{localStorage.getItem('username') || 'user'}/{currentPath}
                     </p>
                 )
+
+            default:
+                return executeRemoteCommand(trimmedCmd)
         }
     }
 
@@ -107,7 +136,10 @@ export function Terminal({ fetchFiles, hideTerminal }: Props) {
                 Authorization: `Bearer ${localStorage.getItem("token")}`,
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ command: cmd }),
+            body: JSON.stringify({ 
+                command: cmd,
+                workingDir: currentPath // NEW: Pass current working directory
+            }),
         })
 
         if (response.status !== 200) {
@@ -179,24 +211,30 @@ export function Terminal({ fetchFiles, hideTerminal }: Props) {
 
     // Focus input on mount and when clicking the terminal
     useEffect(() => {
-        focusInpput()
+        focusInput()
     }, [])
 
-    const focusInpput = () => {
+    const focusInput = () => {
         inputRef.current?.focus()
     }
 
+    // NEW: Get the prompt display path
+    const getPromptPath = () => {
+        if (!currentPath) return '~'
+        return `~/${currentPath}`
+    }
+
     return (
-        <Card className="border border-border bg-black text-white shadow-md py-0 gap-0" onClick={focusInpput}>
+        <Card className="border border-border bg-black text-white shadow-md py-0 gap-0" onClick={focusInput}>
             <div className="flex items-center justify-between border-b border-border bg-muted/20 px-4 py-2">
-                <div className="text-sm font-medium">Terminal</div>
+                <div className="text-sm font-medium">Terminal - {getPromptPath()}</div>
                 <div className="flex items-center space-x-2">
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={hideTerminal}
                         className="rounded-full p-1 hover:bg-muted/20"
-                        aria-label="Clear terminal"
+                        aria-label="Close terminal"
                     >
                         <X className="h-4 w-4" />
                     </Button>
@@ -210,16 +248,21 @@ export function Terminal({ fetchFiles, hideTerminal }: Props) {
                                 <span className="mr-2 text-green-500">
                                     <ChevronRight className="h-4 w-4" />
                                 </span>
+                                <span className="text-blue-400 mr-2">
+                                    {localStorage.getItem('username') || 'user'}@aspose:{getPromptPath()}$
+                                </span>
                                 <span className="font-bold">{cmd.command}</span>
                             </div>
                             <div className="ml-6 mt-1">{cmd.output}</div>
                         </div>
                     ))}
 
-                    {/* TODO: Set current path before the > */}
                     <form onSubmit={handleSubmit} className="mt-2 flex items-center">
                         <span className="mr-2 text-green-500">
                             <ChevronRight className="h-4 w-4" />
+                        </span>
+                        <span className="text-blue-400 mr-2">
+                            {localStorage.getItem('username') || 'user'}@aspose:{getPromptPath()}$
                         </span>
                         <input
                             ref={inputRef}

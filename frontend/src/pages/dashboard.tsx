@@ -2,15 +2,15 @@ import ModeToggle from "@/components/mode-toggle";
 import { Label } from "@/components/ui/label";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { FileTable } from "@/components/file-table";
 import { Button } from "@/components/ui/button";
-import { Folder, Upload } from "lucide-react";
+import { Folder, Upload, Home, ChevronUp } from "lucide-react";
 import { useRef, useState, ChangeEvent, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Terminal } from "@/components/terminal";
 import { FileViewerDialog } from "@/components/file-viewer";
 import { toast, Toaster } from "sonner";
+import { FileTable } from "@/components/folder-structure-table";
 
 export type FileItem = {
   name: string;
@@ -26,9 +26,13 @@ export default function DashboardPage() {
   const [directoryName, setDirectoryName] = useState('');
   const [viewerFile, setViewerFile] = useState<FileItem | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [showTerminal, setShowTerminal] = useState(false);
+  
+  const [currentPath, setCurrentPath] = useState('');
 
-  const fetchFiles = () => {
-    fetch('/api/files', {
+  const fetchFiles = (path = currentPath) => {
+    const queryParam = path ? `?path=${encodeURIComponent(path)}` : '';
+    fetch(`/api/files${queryParam}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     })
       .then((res) => res.json())
@@ -38,7 +42,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchFiles();
-  }, []);
+  }, [currentPath]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -53,6 +57,7 @@ export default function DashboardPage() {
     if (!input?.files?.length) return;
 
     const formData = new FormData();
+    formData.append("parent", currentPath);
     formData.append("file", input.files[0]);
 
     const res = await fetch("/api/files/create", {
@@ -65,8 +70,8 @@ export default function DashboardPage() {
 
     await res.json();
     fetchFiles();
-
-    toast("Upload success", {
+    
+    toast("Upload successful", {
       description: `File "${input.files[0].name}" uploaded successfully.`,
     });
   };
@@ -88,9 +93,9 @@ export default function DashboardPage() {
 
     await res.json();
     fetchFiles();
-
-    toast("Upload success", {
-      description: `Profile HTML file "${input.files[0].name}" uploaded successfully.`,
+    
+    toast("Profile upload successful", {
+      description: `Profile file "${input.files[0].name}" uploaded successfully.`,
     });
   };
 
@@ -104,15 +109,33 @@ export default function DashboardPage() {
     setViewerFile(null);
   };
 
+  const handleEnterDirectory = (file: FileItem) => {
+    const newPath = currentPath ? `${currentPath}/${file.name}` : file.name;
+    setCurrentPath(newPath);
+  };
+
+  const handleGoToRoot = () => {
+    setCurrentPath('');
+  };
+
+  const handleGoUp = () => {
+    if (!currentPath) return;
+    const parts = currentPath.split('/');
+    parts.pop();
+    setCurrentPath(parts.join('/'));
+  };
+
   const newDirectory = async () => {
     if (!directoryName) {
       setError("Directory name cannot be empty");
       return;
     }
+    
     const payload = {
       name: directoryName,
-      parent: null,
+      parent: currentPath, 
     };
+    
     const res = await fetch("/api/files/mkdir", {
       method: "POST",
       headers: {
@@ -121,11 +144,15 @@ export default function DashboardPage() {
       },
       body: JSON.stringify(payload),
     });
+    
     await res.json();
     fetchFiles();
+    setDirectoryName(''); // Clear input
+    
+    toast("Directory created", {
+      description: `Directory "${directoryName}" created successfully.`,
+    });
   };
-
-  const [showTerminal, setShowTerminal] = useState(false);
 
   return (
     <SidebarProvider className="flex flex-row min-h-screen">
@@ -210,15 +237,44 @@ export default function DashboardPage() {
               </Button>
             }
           </div>
+          
+          <div className="flex items-center gap-2 mb-4 p-3 bg-muted rounded-lg">
+            <span className="text-sm text-muted-foreground">Current path:</span>
+            <span className="font-mono">/{currentPath || 'root'}</span>
+            <div className="flex gap-2 ml-auto">
+              {currentPath && (
+                <>
+                  <Button size="sm" variant="outline" onClick={handleGoUp}>
+                    <ChevronUp className="w-4 h-4 mr-1" />
+                    Up
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleGoToRoot}>
+                    <Home className="w-4 h-4 mr-1" />
+                    Root
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
 
           <div className={`grid ${showTerminal ? "grid-cols-2" : "grid-cols-1"} gap-4`}>
-            <FileTable files={files} onViewFile={handleViewFile} />
+            <FileTable 
+              files={files} 
+              onViewFile={handleViewFile}
+              onEnterDirectory={handleEnterDirectory}
+            />
             <FileViewerDialog
               file={viewerFile} 
               isOpen={isViewerOpen}
               onClose={closeViewer}
             />
-            {showTerminal && <Terminal fetchFiles={fetchFiles} hideTerminal={() => setShowTerminal(false)} />}
+            {showTerminal && (
+              <Terminal 
+                fetchFiles={fetchFiles} 
+                hideTerminal={() => setShowTerminal(false)}
+                currentPath={currentPath} 
+              />
+            )}
           </div>
         </div>
       </main>

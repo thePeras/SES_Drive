@@ -83,8 +83,11 @@ app.post('/create-user', (req, res) => {
 });
 
 app.post('/upload-user-file', (req, res) => {
-    const { username, tempPath, originalName } = req.body;
-    const targetPath = `/home/${username}/${originalName}`;
+    const { username, tempPath, originalName, parent = '' } = req.body;
+    const targetPath = path.join('/home', username, parent, originalName);
+
+    // Ensure the target directory exists
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
 
     const fullPath = `/app/backend/${tempPath}`;
 
@@ -99,7 +102,7 @@ app.post('/upload-user-file', (req, res) => {
                 console.error('Error deleting temp file:', unlinkErr);
             }
 
-            const aclCmd = `setfacl -m u:${username}:r-- "${targetPath}" && chmod 600 "${targetPath}"`;
+            const aclCmd = `chown ${username}:${username} "${targetPath}" && setfacl -m u:${username}:r-- "${targetPath}" && chmod 600 "${targetPath}"`;
             exec(aclCmd, (execErr, stdout, stderr) => {
                 if (execErr) {
                     console.error('Error setting permissions:', execErr);
@@ -114,12 +117,12 @@ app.post('/upload-user-file', (req, res) => {
 
 ///create-folder
 app.post('/create-folder', (req, res) => {
-    const { name, username } = req.body;
+    const { name, parent = '', username } = req.body;
     if (!name || !username) {
         return res.status(400).json({ error: 'name and username required' });
     }
 
-    const dirPath = `/home/${username}/${name}`;
+    const dirPath = path.join('/home', username, parent, name);
 
     fs.mkdir(dirPath, { recursive: true }, (err) => {
         if (err) {
@@ -128,7 +131,7 @@ app.post('/create-folder', (req, res) => {
         }
 
         // Set permissions for the user
-        const aclCmd = `setfacl -m u:${username}:rwx "${dirPath}" && chmod 700 "${dirPath}"`;
+        const aclCmd = `chown ${username}:${username} "${dirPath}" && setfacl -m u:${username}:rwx "${dirPath}" && chmod 700 "${dirPath}"`;
         exec(aclCmd, (execErr, stdout, stderr) => {
             if (execErr) {
                 console.error('Error setting permissions:', execErr);
@@ -141,23 +144,23 @@ app.post('/create-folder', (req, res) => {
 });
 
 app.post('/execute-command', (req, res) => {
-    const { command, username } = req.body;
+    const { command, username, workingDir = '' } = req.body;
 
     if (!command) {
         return res.status(400).json({ message: 'Command is required' });
     }
 
-    // TODO: move to a separated middleware
     const userUid = execSync(`id -u ${username}`, { encoding: 'utf8' }).trim();
     if (!userUid) {
         return res.status(404).json({ message: 'User not found' });
     }
 
     const userUidInt = parseInt(userUid, 10);
+    const cwd = path.join('/home', username, workingDir);
 
     exec(command,
         {
-            cwd: `/home/${username}`,
+            cwd: cwd,
             uid: userUidInt,
         },
         (error, stdout, stderr) => {
@@ -272,32 +275,32 @@ app.get('/users', (req, res) => {
 
 // root endpoint to read files from a user's home directory. If paths change we need to update this :/
 app.get('/read-file', (req, res) => {
-    const { username, filename } = req.query;
+    const { username, filename, filePath = '' } = req.query;
 
     if (!username || !filename) {
         return res.status(400).json({ message: 'Username and filename are required' });
     }
 
     const userDir = path.resolve('/home', username);
-    const filePath = path.resolve(userDir, filename);
+    const fullFilePath = path.resolve(userDir, filePath, filename);
 
-    if (!filePath.startsWith(userDir)) {
+    if (!fullFilePath.startsWith(userDir)) {
         return res.status(403).json({ message: 'Access denied' });
     }
 
     try {
-        if (!fs.existsSync(filePath)) {
+        if (!fs.existsSync(fullFilePath)) {
             return res.status(404).json({ message: 'File not found' });
         }
 
-        const stats = fs.statSync(filePath);
+        const stats = fs.statSync(fullFilePath);
         if (!stats.isFile()) {
             return res.status(400).json({ message: 'Path is not a file' });
         }
 
         res.setHeader('Content-Length', stats.size);
 
-        const fileStream = fs.createReadStream(filePath);
+        const fileStream = fs.createReadStream(fullFilePath);
 
         fileStream.on('error', (err) => {
             console.error('Error streaming file:', err);
@@ -324,5 +327,41 @@ app.get('/read-file', (req, res) => {
         } else {
             return res.status(500).json({ message: 'Error accessing file', error: err.message });
         }
+    }
+});
+
+app.get('/list-directory', (req, res) => {
+    const { username, dirPath = '' } = req.query;
+
+    if (!username) {
+        return res.status(400).json({ error: 'Username is required' });
+    }
+
+    const userDir = path.resolve('/home', username);
+    const fullDirPath = path.resolve(userDir, dirPath);
+
+    if (!fullDirPath.startsWith(userDir)) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
+    try {
+        fs.readdir(fullDirPath, { withFileTypes: true }, (err, dirEntries) => {
+            if (err) {
+                console.error('Error reading directory:', err);
+                return res.status(500).json({ error: 'Failed to read directory', details: err.message });
+            }
+
+            const items = dirEntries
+                .filter(entry => !entry.name.startsWith('.'))
+                .map(entry => ({
+                    name: entry.name,
+                    type: entry.isDirectory() ? 'directory' : 'file'
+                }));
+
+            res.json(items);
+        });
+    } catch (err) {
+        console.error('Error accessing directory:', err);
+        res.status(500).json({ error: 'Failed to list directory', details: err.message });
     }
 });
