@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Segurança XSS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+        }
+        h2 {
+            color: #007bff;
+            margin-top: 30px;
+        }
+        .test-box {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .warning {
+            background-color: #ffe6e6;
+            border-left: 4px solid #ff4444;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+    
+    <!-- Tentativa 1: Script no head (deve ser bloqueado) -->
+    <script>
+        console.log("XSS: Script no head executado!");
+        alert("XSS ALERT: Script no head!");
+    </script>
+</head>
+<body onload="alert('XSS: Body onload executado!')">
+    <div class="warning">
+        <strong>⚠️ Aviso:</strong> Este é um ficheiro de teste de segurança que contém tentativas de XSS. Se vir alertas ou mensagens no console, significa que existe uma vulnerabilidade.
+    </div>
+
+    <h1>Teste de Segurança XSS</h1>
+    <p>Este ficheiro contém várias tentativas de cross-site scripting para testar as defesas do iframe.</p>
+
+    <h2>1. Scripts Básicos</h2>
+    <div class="test-box">
+        <p>Tentativa de script inline:</p>
+        <script>
+            console.log("XSS: Script inline executado!");
+            alert("XSS ALERT: Script inline!");
+        </script>
+        <p>Se não viu um alert acima, o script foi bloqueado com sucesso!</p>
+    </div>
+
+    <h2>2. Event Handlers</h2>
+    <div class="test-box">
+        <p>Clique no botão abaixo (deve estar seguro):</p>
+        <button onclick="alert('XSS: onclick executado!')">Botão com onclick</button>
+        <br>
+        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" 
+             onerror="alert('XSS: onerror executado!')" 
+             onload="console.log('XSS: onload da imagem executado!')"
+             alt="Imagem de teste">
+    </div>
+
+    <h2>3. Tentativas de JavaScript via Atributos</h2>
+    <div class="test-box">
+        <a href="javascript:alert('XSS: href javascript executado!')">Link com javascript:</a>
+        <br><br>
+        <input type="text" value="teste" onfocus="alert('XSS: onfocus executado!')">
+        <br><br>
+        <div onmouseover="console.log('XSS: onmouseover executado!')">
+            Passe o mouse aqui (onmouseover)
+        </div>
+    </div>
+
+    <h2>4. Tentativas de Acesso ao Parent</h2>
+    <div class="test-box">
+        <p>Tentativas de acessar a janela pai:</p>
+        <script>
+            try {
+                parent.alert("XSS: Acesso ao parent conseguido!");
+                console.log("XSS: parent.window acessível:", parent.window);
+            } catch(e) {
+                console.log("Bloqueado: Acesso ao parent negado", e.message);
+            }
+            
+            try {
+                top.alert("XSS: Acesso ao top conseguido!");
+            } catch(e) {
+                console.log("Bloqueado: Acesso ao top negado", e.message);
+            }
+            
+            try {
+                window.parent.document.body.innerHTML = "<h1>XSS: DOM modificado!</h1>";
+            } catch(e) {
+                console.log("Bloqueado: Modificação do DOM pai negada", e.message);
+            }
+        </script>
+    </div>
+
+    <h2>5. Tentativas de Redirecionamento</h2>
+    <div class="test-box">
+        <p>Tentativa de redirecionamento:</p>
+        <script>
+            try {
+                window.location.href = "https://example.com";
+                console.log("XSS: Redirecionamento bem-sucedido!");
+            } catch(e) {
+                console.log("Bloqueado: Redirecionamento negado", e.message);
+            }
+        </script>
+    </div>
+
+    <h2>6. Injeção via innerHTML</h2>
+    <div class="test-box">
+        <div id="injection-target">Conteúdo original</div>
+        <script>
+            setTimeout(() => {
+                try {
+                    document.getElementById('injection-target').innerHTML = 
+                        '<img src="x" onerror="alert(\'XSS via innerHTML!\')">';
+                    console.log("XSS: innerHTML injection executada!");
+                } catch(e) {
+                    console.log("Bloqueado: innerHTML injection negada", e.message);
+                }
+            }, 1000);
+        </script>
+    </div>
+
+    <h2>7. Tentativas de Fetch/XMLHttpRequest</h2>
+    <div class="test-box">
+        <script>
+            try {
+                fetch('https://httpbin.org/get')
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("XSS: Fetch executado com sucesso!", data);
+                        alert("XSS: Requisição HTTP bem-sucedida!");
+                    })
+                    .catch(e => {
+                        console.log("Bloqueado: Fetch negado", e.message);
+                    });
+            } catch(e) {
+                console.log("Bloqueado: Fetch completamente bloqueado", e.message);
+            }
+        </script>
+    </div>
+
+    <h2>✅ Resultado Esperado</h2>
+    <div class="test-box">
+        <h3>Se as defesas estiverem funcionando:</h3>
+        <ul>
+            <li>❌ Nenhum alert deve aparecer</li>
+            <li>❌ Não deve haver redirecionamentos</li>
+            <li>❌ O DOM da página pai não deve ser modificado</li>
+            <li>❌ Não devem ocorrer requisições de rede</li>
+            <li>✅ O CSS deve funcionar normalmente</li>
+            <li>✅ O conteúdo deve ser exibido corretamente</li>
+        </ul>
+        
+        <h3>Verificação no Console:</h3>
+        <p>Abra o console do navegador (F12) e procure por mensagens que comecem com "Bloqueado:" - isso indica que as defesas estão funcionando.</p>
+    </div>
+
+    <!-- Tentativa final no final do body -->
+    <script>
+        console.log("XSS: Script final executado!");
+        document.body.style.backgroundColor = "red";
+        alert("XSS FINAL: Se vê isto, há uma vulnerabilidade!");
+    </script>
+</body>
+</html>
