@@ -28,7 +28,6 @@ export default function DashboardPage() {
   const [viewerFile, setViewerFile] = useState<FileItem | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [showTerminal, setShowTerminal] = useState(false);
-  
   const [currentPath, setCurrentPath] = useState('');
 
   const fetchFiles = (path = currentPath) => {

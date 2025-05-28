@@ -177,7 +177,7 @@ app.post('/execute-command', (req, res) => {
 });
 
 app.listen(SOCKET_PATH, () => {
-    fs.chmodSync(SOCKET_PATH, 0o770); // user/group access
+    fs.chmodSync(SOCKET_PATH, 0o777); // user/group access
     console.log(`root-backend listening on socket ${SOCKET_PATH}`);
 });
 
