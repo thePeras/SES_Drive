@@ -1,14 +1,16 @@
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Download, Eye, Folder, Share2, Trash2 } from 'lucide-react';
+import { Download, Eye, Folder, Share2, Trash2, ChevronDown } from 'lucide-react';
 import { FileItem } from '@/pages/dashboard';
 
 interface FileTableProps {
   files: FileItem[];
   onViewFile?: (file: FileItem) => void;
+  onEnterDirectory?: (file: FileItem) => void;
 }
 
-export function FileTable({ files, onViewFile }: FileTableProps) {
+export function FileTable({ files, onViewFile, onEnterDirectory }: FileTableProps) {
+
   return (
     <div className="rounded-lg border">
       <Table>
@@ -26,13 +28,7 @@ export function FileTable({ files, onViewFile }: FileTableProps) {
                 {file.name}
               </TableCell>
               <TableCell>
-                <Button size="icon" variant="ghost">
-                  <Download className="w-4 h-4" />
-                </Button>
-                <Button size="icon" variant="ghost">
-                  <Share2 className="w-4 h-4" />
-                </Button>
-                {file.type !== 'directory' && (
+                {file.type !== 'directory' ? (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -41,7 +37,22 @@ export function FileTable({ files, onViewFile }: FileTableProps) {
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEnterDirectory?.(file)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
                 )}
+                <Button size="icon" variant="ghost">
+                  <Download className="w-4 h-4" />
+                </Button>
+                <Button size="icon" variant="ghost">
+                  <Share2 className="w-4 h-4" />
+                </Button>
                 <Button size="icon" variant="destructive">
                   <Trash2 className="w-4 h-4" />
                 </Button>

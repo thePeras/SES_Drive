@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Terminal } from "@/components/terminal";
 import { FileViewerDialog } from "@/components/file-viewer";
+import { toast, Toaster } from "sonner";
 
 export type FileItem = {
   name: string;
@@ -64,6 +65,10 @@ export default function DashboardPage() {
 
     await res.json();
     fetchFiles();
+
+    toast("Upload success", {
+      description: `File "${input.files[0].name}" uploaded successfully.`,
+    });
   };
 
   const uploadProfileFile = async () => {
@@ -83,6 +88,10 @@ export default function DashboardPage() {
 
     await res.json();
     fetchFiles();
+
+    toast("Upload success", {
+      description: `Profile HTML file "${input.files[0].name}" uploaded successfully.`,
+    });
   };
 
   const handleViewFile = (file: FileItem) => {
@@ -213,6 +222,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+      <Toaster />
     </SidebarProvider>
   );
 }
