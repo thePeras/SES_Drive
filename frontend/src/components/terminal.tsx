@@ -30,34 +30,34 @@ export function Terminal({ fetchFiles, hideTerminal, currentPath = '' }: Props) 
                     <p>Available commands:</p>
                     <ul className="ml-4 mt-2">
                         <li>
-                            <span className="text-primary">help</span> - Show this help message
+                            <span className="text-green-400">help</span> - Show this help message
                         </li>
                         <li>
-                            <span className="text-primary">clear</span> - Clear the terminal
+                            <span className="text-green-400">clear</span> - Clear the terminal
                         </li>
                         <li>
-                            <span className="text-primary">echo [text]</span> - Echo text back to the terminal
+                            <span className="text-green-400">echo [text]</span> - Echo text back to the terminal
                         </li>
                         <li>
-                            <span className="text-primary">date</span> - Show current date and time
+                            <span className="text-green-400">date</span> - Show current date and time
                         </li>
                         <li>
-                            <span className="text-primary">whoami</span> - Display current user
+                            <span className="text-green-400">whoami</span> - Display current user
                         </li>
                         <li>
-                            <span className="text-primary">ls</span> - List directory contents
+                            <span className="text-green-400">ls</span> - List directory contents
                         </li>
                         <li>
-                            <span className="text-primary">pwd</span> - Print working directory
+                            <span className="text-green-400">pwd</span> - Print working directory
                         </li>
                         <li>
-                            <span className="text-primary">cat [file]</span> - Display file contents
+                            <span className="text-green-400">cat [file]</span> - Display file contents
                         </li>
                         <li>
-                            <span className="text-primary">mkdir [dir]</span> - Create directory
+                            <span className="text-green-400">mkdir [dir]</span> - Create directory
                         </li>
                         <li>
-                            <span className="text-primary">touch [file]</span> - Create empty file
+                            <span className="text-green-400">touch [file]</span> - Create empty file
                         </li>
                     </ul>
                 </div>
@@ -81,31 +81,31 @@ export function Terminal({ fetchFiles, hideTerminal, currentPath = '' }: Props) 
                         <p>Available commands:</p>
                         <ul className="ml-4 mt-2">
                             <li>
-                                <span className="text-primary">help</span> - Show this help message
+                                <span className="text-green-400">help</span> - Show this help message
                             </li>
                             <li>
-                                <span className="text-primary">clear</span> - Clear the terminal
+                                <span className="text-green-400">clear</span> - Clear the terminal
                             </li>
                             <li>
-                                <span className="text-primary">echo [text]</span> - Echo text back to the terminal
+                                <span className="text-green-400">echo [text]</span> - Echo text back to the terminal
                             </li>
                             <li>
-                                <span className="text-primary">whoami</span> - Display current user
+                                <span className="text-green-400">whoami</span> - Display current user
                             </li>
                             <li>
-                                <span className="text-primary">ls</span> - List directory contents
+                                <span className="text-green-400">ls</span> - List directory contents
                             </li>
                             <li>
-                                <span className="text-primary">pwd</span> - Print working directory
+                                <span className="text-green-400">pwd</span> - Print working directory
                             </li>
                             <li>
-                                <span className="text-primary">cat [file]</span> - Display file contents
+                                <span className="text-green-400">cat [file]</span> - Display file contents
                             </li>
                             <li>
-                                <span className="text-primary">mkdir [dir]</span> - Create directory
+                                <span className="text-green-400">mkdir [dir]</span> - Create directory
                             </li>
                             <li>
-                                <span className="text-primary">touch [file]</span> - Create empty file
+                                <span className="text-green-400">touch [file]</span> - Create empty file
                             </li>
                         </ul>
                     </div>
