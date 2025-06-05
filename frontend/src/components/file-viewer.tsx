@@ -5,13 +5,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Worker, Viewer } from "@react-pdf-viewer/core";
-import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
+import { Document, Page, pdfjs } from "react-pdf";
 import ReactPlayer from "react-player";
 import Editor from "@monaco-editor/react";
-import "@react-pdf-viewer/core/lib/styles/index.css";
-import "@react-pdf-viewer/default-layout/lib/styles/index.css";
+import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import "react-pdf/dist/esm/Page/TextLayer.css";
 import { FileItem } from "@/pages/dashboard";
+import workerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
+pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
 interface FileViewerProps {
   file: FileItem | null;
@@ -22,11 +23,11 @@ interface FileViewerProps {
 export function FileViewerDialog({ file, isOpen, onClose }: FileViewerProps) {
   const [fileUrl, setFileUrl] = useState<string>("");
   const [fileContent, setFileContent] = useState<string>("");
+  const [blob, setBlob] = useState<Blob | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [viewerType, setViewerType] = useState<string>("");
-
-  const defaultLayoutPluginInstance = defaultLayoutPlugin();
+  const [numPages, setNumPages] = useState<number>(0);
 
   const getFileType = (filename: string) => {
     const extension = filename.split(".").pop()?.toLowerCase();
@@ -74,11 +75,13 @@ export function FileViewerDialog({ file, isOpen, onClose }: FileViewerProps) {
       return "pdf";
     }
 
-    if ([
-      "js", "jsx", "ts", "tsx", "json", "html", "css", "scss",
-      "py", "java", "cpp", "c", "xml", "yaml", "yml", "md",
-      "sql", "txt", "log", "csv"
-    ].includes(extension)) {
+    if (
+      [
+        "js", "jsx", "ts", "tsx", "json", "html", "css", "scss",
+        "py", "java", "cpp", "c", "xml", "yaml", "yml", "md",
+        "sql", "txt", "log", "csv"
+      ].includes(extension)
+    ) {
       return "code";
     }
 
@@ -91,6 +94,7 @@ export function FileViewerDialog({ file, isOpen, onClose }: FileViewerProps) {
       setFileContent("");
       setError("");
       setViewerType("");
+      setNumPages(0);
       return;
     }
 
@@ -114,9 +118,7 @@ export function FileViewerDialog({ file, isOpen, onClose }: FileViewerProps) {
         }
 
         const response = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          credentials: "include",
         });
 
         if (!response.ok) {
@@ -129,6 +131,7 @@ export function FileViewerDialog({ file, isOpen, onClose }: FileViewerProps) {
           setFileContent(text);
         } else {
           const blob = await response.blob();
+          setBlob(blob);
           const url = URL.createObjectURL(blob);
           setFileUrl(url);
         }
@@ -195,11 +198,17 @@ export function FileViewerDialog({ file, isOpen, onClose }: FileViewerProps) {
 
       case "pdf":
         return (
-            <div className="h-[70vh]">
-              <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-                <Viewer fileUrl={fileUrl} plugins={[defaultLayoutPluginInstance]} />
-              </Worker>
-            </div>
+          <div className="flex justify-center overflow-auto max-h-[80vh] p-4">
+            <Document
+              file={blob}
+              onLoadSuccess={({ numPages }) => { console.log(numPages), setNumPages(numPages) }}
+              onLoadError={(err) => setError("Error loading PDF" + err.message)}
+            >
+              {Array.from(new Array(numPages), (_, i) => (
+                <Page key={`page_${i + 1}`} pageNumber={i + 1} width={400} />
+              ))}
+            </Document>
+          </div>
         );
 
       case "code":

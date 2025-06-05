@@ -15,24 +15,9 @@ import { Button } from "@/components/ui/button";
 import Logo from "./ui/logo";
 import { Link, useNavigate } from "react-router-dom";
 
-const getUsernameFromJWT = (token: string) => {
-  try {
-    const payloadBase64 = token.split('.')[1];
-    const payloadJson = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
-    const payload = JSON.parse(payloadJson);
-
-    // Try common username keys
-    return payload.username || payload.sub || payload.email || null;
-  } catch (err) {
-    console.error("Invalid JWT:", err);
-    return null;
-  }
-}
-
 export function AppSidebar() {
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
-  const username = token ? getUsernameFromJWT(token) : null;
+  const username = localStorage.getItem("username") || "";
 
   const items = [
     {
@@ -53,7 +38,13 @@ export function AppSidebar() {
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+
+    fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    })
+
     navigate("/");
   };
 

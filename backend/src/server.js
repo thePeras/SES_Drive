@@ -1,12 +1,11 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import fileRoutes from './routes/files.js';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-
 
 // Load environment variables
 dotenv.config();
@@ -22,8 +21,12 @@ app.use(
 );
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+}));
 app.use(express.json());
+app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', authRoutes);

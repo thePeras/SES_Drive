@@ -51,8 +51,8 @@ export default function DashboardPage() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
+      credentials: 'include',
       body: JSON.stringify({
         recipient: targetUsername,
         filePath: fileToShare.path ? `${fileToShare.path}/${fileToShare.name}` : fileToShare.name,
@@ -86,62 +86,62 @@ export default function DashboardPage() {
 
   const fetchSharedFiles = () => {
     fetch('/api/files/shared', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      credentials: 'include',
     })
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          console.log('Shared files response:', data);
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        console.log('Shared files response:', data);
 
-          const transformedFiles = data.map((sharedFile: any) => {
-            const pathParts = sharedFile.filePath.split('/');
-            const fileName = pathParts[pathParts.length - 1];
+        const transformedFiles = data.map((sharedFile: any) => {
+          const pathParts = sharedFile.filePath.split('/');
+          const fileName = pathParts[pathParts.length - 1];
 
-            return {
-              name: fileName,
-              type: 'file',
-              shared: true,
-              sharedFrom: sharedFile.owner,
-              owner: sharedFile.owner,
-              permission: sharedFile.permission,
-              filePath: sharedFile.filePath,
-              sharedAt: sharedFile.sharedAt,
-              path: sharedFile.filePath.substring(0, sharedFile.filePath.lastIndexOf('/')) || ''
-            };
-          });
-
-          setFiles(transformedFiles);
-        })
-        .catch((err) => {
-          console.error('Error fetching shared files:', err);
-          toast("Failed to fetch shared files", {
-            description: err.message || "Unknown error occurred"
-          });
-          setFiles([]);
+          return {
+            name: fileName,
+            type: 'file',
+            shared: true,
+            sharedFrom: sharedFile.owner,
+            owner: sharedFile.owner,
+            permission: sharedFile.permission,
+            filePath: sharedFile.filePath,
+            sharedAt: sharedFile.sharedAt,
+            path: sharedFile.filePath.substring(0, sharedFile.filePath.lastIndexOf('/')) || ''
+          };
         });
+
+        setFiles(transformedFiles);
+      })
+      .catch((err) => {
+        console.error('Error fetching shared files:', err);
+        toast("Failed to fetch shared files", {
+          description: err.message || "Unknown error occurred"
+        });
+        setFiles([]);
+      });
   };
 
   const fetchFiles = (path = currentPath) => {
     const queryParam = path ? `?path=${encodeURIComponent(path)}` : '';
     fetch(`/api/files${queryParam}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      credentials: 'include',
     })
-        .then((res) => res.json())
-        .then((data) => {
-          setFiles(data.map((item: FileItem) => ({
-            ...item,
-            path: currentPath,
-            shared: false
-          })));
-        })
-        .catch((err) => {
-          console.error('Error fetching files:', err);
-          toast("Failed to fetch files", { description: err.message });
-        });
+      .then((res) => res.json())
+      .then((data) => {
+        setFiles(data.map((item: FileItem) => ({
+          ...item,
+          path: currentPath,
+          shared: false
+        })));
+      })
+      .catch((err) => {
+        console.error('Error fetching files:', err);
+        toast("Failed to fetch files", { description: err.message });
+      });
   };
 
   useEffect(() => {
@@ -175,9 +175,7 @@ export default function DashboardPage() {
 
     const res = await fetch("/api/files/create", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+      credentials: "include",
       body: formData,
     });
 
@@ -198,9 +196,7 @@ export default function DashboardPage() {
 
     const res = await fetch("/api/files/profile/create", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+      credentials: "include",
       body: formData,
     });
 
@@ -253,8 +249,8 @@ export default function DashboardPage() {
 
     const res = await fetch("/api/files/mkdir", {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
@@ -270,184 +266,183 @@ export default function DashboardPage() {
   };
 
   return (
-      <SidebarProvider className="flex flex-row min-h-screen">
-        <AppSidebar />
-        <main className="flex flex-col h-screen w-full">
-          <div className="w-full flex items-center justify-between p-4">
-            <SidebarTrigger />
-            <ModeToggle />
+    <SidebarProvider className="flex flex-row min-h-screen">
+      <AppSidebar />
+      <main className="flex flex-col h-screen w-full">
+        <div className="w-full flex items-center justify-between p-4">
+          <SidebarTrigger />
+          <ModeToggle />
+        </div>
+        <div className="flex-1 p-4 overflow-y-auto">
+          <h1 className="text-2xl font-semibold mb-6">Welcome to Aspose, your file management tool.</h1>
+
+          {/* View Mode Toggle */}
+          <div className="flex gap-2 mb-6">
+            <Button
+              variant={viewMode === 'myFiles' ? 'default' : 'outline'}
+              onClick={() => handleViewModeChange('myFiles')}
+            >
+              <FolderOpen className="mr-2 h-4 w-4" />
+              My Files
+            </Button>
+            <Button
+              variant={viewMode === 'sharedFiles' ? 'default' : 'outline'}
+              onClick={() => handleViewModeChange('sharedFiles')}
+            >
+              <Users className="mr-2 h-4 w-4" />
+              Shared with Me
+            </Button>
           </div>
-          <div className="flex-1 p-4 overflow-y-auto">
-            <h1 className="text-2xl font-semibold mb-6">Welcome to Aspose, your file management tool.</h1>
 
-            {/* View Mode Toggle */}
-            <div className="flex gap-2 mb-6">
-              <Button
-                  variant={viewMode === 'myFiles' ? 'default' : 'outline'}
-                  onClick={() => handleViewModeChange('myFiles')}
-              >
-                <FolderOpen className="mr-2 h-4 w-4" />
-                My Files
-              </Button>
-              <Button
-                  variant={viewMode === 'sharedFiles' ? 'default' : 'outline'}
-                  onClick={() => handleViewModeChange('sharedFiles')}
-              >
-                <Users className="mr-2 h-4 w-4" />
-                Shared with Me
-              </Button>
-            </div>
+          {/* Only show upload/create options in "My Files" mode */}
+          {viewMode === 'myFiles' && (
+            <div className="grid w-full max-w-xl items-start gap-6 mb-10">
+              <Dialog open={isSharingDialogOpen} onOpenChange={setIsSharingDialogOpen}>
+                <DialogContent>
+                  <div className="grid gap-4">
+                    <Label htmlFor="username">Share with (username)</Label>
+                    <Input
+                      id="username"
+                      placeholder="Enter username"
+                      value={targetUsername}
+                      onChange={(e) => setTargetUsername(e.target.value)}
+                    />
 
-            {/* Only show upload/create options in "My Files" mode */}
-            {viewMode === 'myFiles' && (
-                <div className="grid w-full max-w-xl items-start gap-6 mb-10">
-                  <Dialog open={isSharingDialogOpen} onOpenChange={setIsSharingDialogOpen}>
-                    <DialogContent>
-                      <div className="grid gap-4">
-                        <Label htmlFor="username">Share with (username)</Label>
-                        <Input
-                            id="username"
-                            placeholder="Enter username"
-                            value={targetUsername}
-                            onChange={(e) => setTargetUsername(e.target.value)}
-                        />
+                    <Label htmlFor="permission">Permission</Label>
+                    <select
+                      id="permission"
+                      className="border rounded px-2 py-1"
+                      value={permission}
+                      onChange={(e) => setPermission(e.target.value as 'view' | 'edit')}
+                    >
+                      <option value="view">View</option>
+                      <option value="edit">Edit</option>
+                    </select>
 
-                        <Label htmlFor="permission">Permission</Label>
-                        <select
-                            id="permission"
-                            className="border rounded px-2 py-1"
-                            value={permission}
-                            onChange={(e) => setPermission(e.target.value as 'view' | 'edit')}
-                        >
-                          <option value="view">View</option>
-                          <option value="edit">Edit</option>
-                        </select>
-
-                        <Button onClick={shareFile}>Share</Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-
-                  <Dialog>
-                    <DialogTrigger className="w-full flex justify-start">
-                      <Button variant="outline">
-                        <Folder className="mr-2" />
-                        New Directory
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <div className="grid gap-4">
-                        <Label htmlFor="directory-name" className="text-base font-medium">Directory Name</Label>
-                        <Input
-                            id="directory-name"
-                            type="text"
-                            value={directoryName}
-                            onChange={(e) => setDirectoryName(e.target.value)}
-                            placeholder="Enter directory name"
-                        />
-                        <Button onClick={newDirectory}>Create Directory</Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="general-upload" className="text-base font-medium">Upload files for your file structure</Label>
-                    <div className="flex items-center gap-4">
-                      <input
-                          id="general-upload"
-                          type="file"
-                          onChange={handleFileChange}
-                          className="w-full text-base px-4 py-2 border border-input rounded-md bg-background"
-                          ref={generalFileRef}
-                      />
-                      <Button onClick={uploadFile} className="h-10">
-                        <Upload className="mr-2 h-4 w-4" />
-                        Upload
-                      </Button>
-                    </div>
+                    <Button onClick={shareFile}>Share</Button>
                   </div>
+                </DialogContent>
+              </Dialog>
 
-                  <div className="grid gap-2">
-                    <Label htmlFor="profile-upload" className="text-base font-medium">Upload an HTML file for your profile</Label>
-                    <div className="flex items-center gap-4">
-                      <input
-                          id="profile-upload"
-                          type="file"
-                          accept=".html"
-                          onChange={handleFileChange}
-                          className="w-full text-base px-4 py-2 border border-input rounded-md bg-background"
-                          ref={profileFileRef}
-                      />
-                      <Button onClick={uploadProfileFile} className="h-10">
-                        <Upload className="mr-2 h-4 w-4" />
-                        Upload
-                      </Button>
-                    </div>
-                  </div>
-
-                  {selectedFile && (
-                      <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>
-                  )}
-                </div>
-            )}
-
-            {error && <p className="text-red-500 mb-4">{error}</p>}
-
-            <div className="flex justify-end mb-5">
-              {!showTerminal &&
-                  <Button onClick={() => setShowTerminal(prev => !prev)}>
-                    Open Terminal
+              <Dialog>
+                <DialogTrigger className="w-full flex justify-start">
+                  <Button variant="outline">
+                    <Folder className="mr-2" />
+                    New Directory
                   </Button>
-              }
-            </div>
-
-            {/* Only show path navigation in "My Files" mode */}
-            {viewMode === 'myFiles' && (
-                <div className="flex items-center gap-2 mb-4 p-3 bg-muted rounded-lg">
-                  <span className="text-sm text-muted-foreground">Current path:</span>
-                  <span className="font-mono">/{currentPath || 'root'}</span>
-                  <div className="flex gap-2 ml-auto">
-                    {currentPath && (
-                        <>
-                          <Button size="sm" variant="outline" onClick={handleGoUp}>
-                            <ChevronUp className="w-4 h-4 mr-1" />
-                            Up
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={handleGoToRoot}>
-                            <Home className="w-4 h-4 mr-1" />
-                            Root
-                          </Button>
-                        </>
-                    )}
+                </DialogTrigger>
+                <DialogContent>
+                  <div className="grid gap-4">
+                    <Label htmlFor="directory-name" className="text-base font-medium">Directory Name</Label>
+                    <Input
+                      id="directory-name"
+                      type="text"
+                      value={directoryName}
+                      onChange={(e) => setDirectoryName(e.target.value)}
+                      placeholder="Enter directory name"
+                    />
+                    <Button onClick={newDirectory}>Create Directory</Button>
                   </div>
-                </div>
-            )}
+                </DialogContent>
+              </Dialog>
 
-            <div className={`grid ${showTerminal ? "grid-cols-2" : "grid-cols-1"} gap-4`}>
-              <FileTable
-                  files={files}
-                  onViewFile={handleViewFile}
-                  onEnterDirectory={handleEnterDirectory}
-                  onShareFile={viewMode === 'myFiles' ? openShareDialog : undefined}
-                  isSharedView={viewMode === 'sharedFiles'}
-              />
-              <FileViewerDialog
-                  file={viewerFile}
-                  isOpen={isViewerOpen}
-                  onClose={closeViewer}
-              />
-              {showTerminal && (
-                  <Terminal
-                      fetchFiles={fetchFiles}
-                      hideTerminal={() => setShowTerminal(false)}
-                      currentPath={currentPath}
+              <div className="grid gap-2">
+                <Label htmlFor="general-upload" className="text-base font-medium">Upload files for your file structure</Label>
+                <div className="flex items-center gap-4">
+                  <input
+                    id="general-upload"
+                    type="file"
+                    onChange={handleFileChange}
+                    className="w-full text-base px-4 py-2 border border-input rounded-md bg-background"
+                    ref={generalFileRef}
                   />
+                  <Button onClick={uploadFile} className="h-10">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="profile-upload" className="text-base font-medium">Upload an HTML file for your profile</Label>
+                <div className="flex items-center gap-4">
+                  <input
+                    id="profile-upload"
+                    type="file"
+                    accept=".html"
+                    onChange={handleFileChange}
+                    className="w-full text-base px-4 py-2 border border-input rounded-md bg-background"
+                    ref={profileFileRef}
+                  />
+                  <Button onClick={uploadProfileFile} className="h-10">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload
+                  </Button>
+                </div>
+              </div>
+
+              {selectedFile && (
+                <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>
               )}
             </div>
+          )}
 
+          {error && <p className="text-red-500 mb-4">{error}</p>}
+
+          <div className="flex justify-end mb-5">
+            {!showTerminal &&
+              <Button onClick={() => setShowTerminal(prev => !prev)}>
+                Open Terminal
+              </Button>
+            }
           </div>
-        </main>
-        <Toaster />
-      </SidebarProvider>
+
+          {/* Only show path navigation in "My Files" mode */}
+          {viewMode === 'myFiles' && (
+            <div className="flex items-center gap-2 mb-4 p-3 bg-muted rounded-lg">
+              <span className="text-sm text-muted-foreground">Current path:</span>
+              <span className="font-mono">/{currentPath || 'root'}</span>
+              <div className="flex gap-2 ml-auto">
+                {currentPath && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={handleGoUp}>
+                      <ChevronUp className="w-4 h-4 mr-1" />
+                      Up
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleGoToRoot}>
+                      <Home className="w-4 h-4 mr-1" />
+                      Root
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className={`grid ${showTerminal ? "grid-cols-2" : "grid-cols-1"} gap-4`}>
+            <FileTable
+              files={files}
+              onViewFile={handleViewFile}
+              onEnterDirectory={handleEnterDirectory}
+              onShareFile={viewMode === 'myFiles' ? openShareDialog : undefined}
+              isSharedView={viewMode === 'sharedFiles'}
+            />
+            <FileViewerDialog
+              file={viewerFile}
+              isOpen={isViewerOpen}
+              onClose={closeViewer}
+            />
+            {showTerminal && (
+              <Terminal
+                fetchFiles={fetchFiles}
+                hideTerminal={() => setShowTerminal(false)}
+                currentPath={currentPath}
+              />
+            )}
+          </div>
+        </div>
+      </main>
+      <Toaster />
+    </SidebarProvider>
   );
 }
