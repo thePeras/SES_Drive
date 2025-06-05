@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { auth } from "../middleware/auth.js";
 import dotenv from "dotenv";
 import { rootBackend } from "../rootBackend.js";
+import { pwnedPassword } from 'hibp';
 
 dotenv.config();
 
@@ -28,6 +29,18 @@ function isValidUnixPassword(password, username = '') {
   return !(typeof password !== 'string' || password.length < minLength || password.length > maxLength);
 }
 
+// Check if a password has been compromised using HIBP
+// The password is given in plain text, but only the first 5 characters of its SHA-1 hash will be submitted to the API.
+async function isPasswordCompromised(password) {
+  try {
+    const breachCount = await pwnedPassword(password);
+    return [breachCount > 0, breachCount];
+  } catch (err) {
+    console.error('HIBP check failed:', err);
+    return [false, 0];
+  }
+}
+
 router.post('/register', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -43,7 +56,11 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Invalid password. Must be 5-64 characters long' });
     }
 
-    // TODO: match the desired password with common on the internet and tell the user if it matches a common password heuheuhue
+    const [isCompromised, breachCount] = await isPasswordCompromised(password);
+    if (isCompromised) {
+      console.log(`Password has been compromised ${breachCount} times`);
+      return res.status(400).json({ message: `This password has been compromised. It has been pwned ${breachCount} times. Please choose a different password.` });
+    }
 
     // Check if user already exists
     console.log('Checking username availability...');
