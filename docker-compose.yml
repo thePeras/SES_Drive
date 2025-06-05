@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   aspose-backend:
     build: .
@@ -7,10 +5,10 @@ services:
       - "5500:3000" # Only the public backend port is exposed
     privileged: true
     volumes:
-        - .:/app
-        - shared-data:/app/shared
-        - /app/root-backend/node_modules
-        - /app/backend/node_modules
+      - .:/app
+      - shared-data:/app/shared
+      - /app/root-backend/node_modules
+      - /app/backend/node_modules
     networks:
       - backendnet
 
