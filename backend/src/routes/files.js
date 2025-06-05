@@ -1,5 +1,4 @@
 import {auth} from '../middleware/auth.js';
-import {findById} from '../models/File.js';
 import express from 'express';
 import multer from 'multer';
 
@@ -87,7 +86,6 @@ router.post('/profile/create', auth, profileUpload.single('file'), async (req, r
 
 // get profile file -> working
 router.get('/profile/render/:username', async (req, res) => {
-    // There is no need for authentication since the profile pages are public in our domain.
     const username = req.params.username;
 
     try {
@@ -149,29 +147,22 @@ router.post('/mkdir', auth, async (req, res) => {
     }
 });
 
-//delete -> wip
-router.delete('/:id', auth, async (req, res) => {
-    try {
-        const file = await findById(req.params.id);
-        if (!file || file.owner.toString() !== req.user._id.toString()) {
-            return res.status(403).json({message: 'Unauthorized'});
-        }
-        await file.remove();
-        res.status(200).json({message: 'File deleted'});
-    } catch (err) {
-        res.status(500).json({message: 'Error deleting file', error: err});
-    }
-});
-
 // view file content -> working
 router.get('/view/:filename', auth, async (req, res) => {
     const filename = req.params.filename;
-    const { path: filePath = '' } = req.query;
+    const { path: filePath = '', owner } = req.query; // Add owner parameter
     const username = req.username;
 
     try {
+        const actualUsername = owner || username;
+
         const fileResponse = await rootBackend.get('/read-file', {
-            params: { username, filename, filePath },
+            params: {
+                username: actualUsername,
+                filename,
+                filePath,
+                requestingUser: username
+            },
             responseType: 'stream'
         });
 
@@ -197,41 +188,66 @@ router.get('/view/:filename', auth, async (req, res) => {
     }
 });
 
-//rename -> wip
-router.put('/:id/rename', auth, async (req, res) => {
-    const {newName} = req.body;
+// file sharing endpoint -> workin
+router.post('/share', auth, async (req, res) => {
     try {
-        const file = await findById(req.params.id);
-        if (!file || file.owner.toString() !== req.user._id.toString()) {
-            return res.status(403).json({message: 'Unauthorized'});
+        const { recipient, filePath, permission } = req.body;
+        const owner = req.username; // Get owner from authenticated user
+
+        if (!recipient || !filePath || !permission) {
+            return res.status(400).json({
+                error: 'recipient, filePath, and permission are required'
+            });
         }
-        file.name = newName;
-        await file.save();
-        res.status(200).json(file);
-    } catch (err) {
-        res.status(500).json({message: 'Error renaming file', error: err});
+
+        const shareResponse = await rootBackend.post('/share', {
+            owner,
+            recipient,
+            filePath,
+            permission
+        });
+
+        return res.json({
+            message: `File shared with ${recipient} with ${permission} access`
+        });
+    } catch (error) {
+        console.error('Error sharing file:', error.message);
+
+        if (error.response?.status === 404) {
+            return res.status(404).json({ error: 'File or user not found' });
+        } else if (error.response?.status === 400) {
+            return res.status(400).json({
+                error: 'Invalid request',
+                details: error.response?.data?.error || error.message
+            });
+        } else {
+            return res.status(500).json({
+                error: 'Error sharing file',
+                details: error.message
+            });
+        }
     }
 });
 
-//share -> wip
-router.put('/:id/share', auth, async (req, res) => {
-    const {userId, permission} = req.body;
+// Get shared files endpoint when someone shares files to you
+router.get('/shared', auth, async (req, res) => {
     try {
-        const file = await findById(req.params.id);
-        if (!file || file.owner.toString() !== req.user._id.toString()) {
-            return res.status(403).json({message: 'Unauthorized'});
-        }
+        const username = req.username;
 
-        if (permission === 'read') {
-            if (!file.read.includes(userId)) file.read.push(userId);
-        } else if (permission === 'write') {
-            if (!file.write.includes(userId)) file.write.push(userId);
-        }
+        const sharedResponse = await rootBackend.get(`/shared-files/${username}`);
 
-        await file.save();
-        res.status(200).json(file);
-    } catch (err) {
-        res.status(500).json({message: 'Error sharing file', error: err});
+        return res.json(sharedResponse.data);
+    } catch (error) {
+        console.error('Error fetching shared files:', error.message);
+
+        if (error.response?.status === 404) {
+            return res.json([]);
+        } else {
+            return res.status(500).json({
+                error: 'Failed to fetch shared files',
+                details: error.message
+            });
+        }
     }
 });
 

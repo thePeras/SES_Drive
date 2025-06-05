@@ -9,9 +9,15 @@ const app = express();
 app.use(express.json());
 
 const PROFILES_DIR = '/app/shared/profiles';
+const SHARED_FILES_DB = '/app/shared/shared_files.json';
 
 if (!fs.existsSync(PROFILES_DIR)) {
     fs.mkdirSync(PROFILES_DIR, { recursive: true, mode: 0o755 });
+}
+
+const sharedDir = path.dirname(SHARED_FILES_DB);
+if (!fs.existsSync(sharedDir)) {
+    fs.mkdirSync(sharedDir, { recursive: true, mode: 0o755 });
 }
 
 // Setup unix socket for local communication
@@ -23,6 +29,37 @@ fs.mkdirSync(path.dirname(SOCKET_PATH), { recursive: true });
 if (fs.existsSync(SOCKET_PATH)) {
     fs.unlinkSync(SOCKET_PATH);
 }
+
+const readSharedFiles = () => {
+    try {
+        if (!fs.existsSync(SHARED_FILES_DB)) {
+            writeSharedFiles([]);
+            return [];
+        }
+        const data = fs.readFileSync(SHARED_FILES_DB, 'utf8');
+        if (!data.trim()) {
+            return [];
+        }
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Error reading shared files, returning empty array:', error);
+        try {
+            writeSharedFiles([]);
+        } catch (writeError) {
+            console.error('Failed to create new shared files database:', writeError);
+        }
+        return [];
+    }
+};
+
+const writeSharedFiles = (sharedFiles) => {
+    try {
+        fs.writeFileSync(SHARED_FILES_DB, JSON.stringify(sharedFiles, null, 2), 'utf8');
+    } catch (error) {
+        console.error('Error writing shared files:', error);
+        throw error;
+    }
+};
 
 app.get('/is-username-available/:username', (req, res) => {
     const { username } = req.params;
@@ -36,7 +73,6 @@ app.get('/is-username-available/:username', (req, res) => {
         return res.json(false);
     });
 });
-
 
 function authenticateUser(username, password) {
     return new Promise((resolve, reject) => {
@@ -177,11 +213,6 @@ app.post('/execute-command', (req, res) => {
         });
 });
 
-app.listen(SOCKET_PATH, () => {
-    fs.chmodSync(SOCKET_PATH, 0o777); // user/group access
-    console.log(`root-backend listening on socket ${SOCKET_PATH}`);
-});
-
 // Endpoint to upload a user's profile HTML content -> working
 app.post('/upload-profile', (req, res) => {
     const { username, htmlContent } = req.body;
@@ -277,9 +308,9 @@ app.get('/users', (req, res) => {
     });
 });
 
-// root endpoint to read files from a user's home directory. If paths change we need to update this :/
+// root endpoint to read files from a user's home directory. i updated this
 app.get('/read-file', (req, res) => {
-    const { username, filename, filePath = '' } = req.query;
+    const { username, filename, filePath = '', requestingUser } = req.query;
 
     if (!username || !filename) {
         return res.status(400).json({ message: 'Username and filename are required' });
@@ -300,6 +331,19 @@ app.get('/read-file', (req, res) => {
         const stats = fs.statSync(fullFilePath);
         if (!stats.isFile()) {
             return res.status(400).json({ message: 'Path is not a file' });
+        }
+
+        if (requestingUser && requestingUser !== username) {
+            const allSharedFiles = readSharedFiles();
+            const sharedFile = allSharedFiles.find(file =>
+                file.owner === username &&
+                file.recipient === requestingUser &&
+                file.filePath === (filePath ? `${filePath}/${filename}` : filename)
+            );
+
+            if (!sharedFile) {
+                return res.status(403).json({ message: 'File not shared with you' });
+            }
         }
 
         res.setHeader('Content-Length', stats.size);
@@ -368,5 +412,122 @@ app.get('/list-directory', (req, res) => {
     } catch (err) {
         console.error('Error accessing directory:', err);
         res.status(500).json({ error: 'Failed to list directory', details: err.message });
+    }
+});
+
+//   endpoint to get shared files for a user
+app.get('/shared-files/:username', (req, res) => {
+    try {
+        const { username } = req.params;
+
+        if (!username) {
+            return res.status(400).json({
+                error: 'Username is required'
+            });
+        }
+
+        const allSharedFiles = readSharedFiles();
+        const userSharedFiles = allSharedFiles.filter(file => file.recipient === username);
+
+        console.log(`Found ${userSharedFiles.length} shared files for user ${username}`);
+        res.json(userSharedFiles);
+    } catch (error) {
+        console.error('Error fetching shared files:', error);
+        res.status(500).json({
+            error: 'Failed to fetch shared files',
+            details: error.message
+        });
+    }
+});
+
+// share endpoint -> working
+app.post('/share', (req, res) => {
+    const { owner, recipient, filePath, permission } = req.body;
+
+    if (!owner || !recipient || !filePath || !permission) {
+        return res.status(400).json({
+            error: 'owner, recipient, filePath, and permission are required'
+        });
+    }
+
+    const checkRecipientCmd = `id -u ${recipient} 2>/dev/null`;
+    exec(checkRecipientCmd, (userErr) => {
+        if (userErr) {
+            return res.status(404).json({ error: 'Recipient user not found' });
+        }
+
+        const fullPath = path.join('/home', owner, filePath);
+
+        if (!fs.existsSync(fullPath)) {
+            return res.status(404).json({ error: 'File does not exist' });
+        }
+
+        const permMap = {
+            read: 'r--',
+            'read-write': 'rw-'
+        };
+
+        if (!permMap[permission]) {
+            return res.status(400).json({ error: 'Invalid permission. Use "read" or "read-write"' });
+        }
+
+        const aclCmd = `setfacl -m u:${recipient}:${permMap[permission]} "${fullPath}"`;
+
+        exec(aclCmd, (err, stdout, stderr) => {
+            if (err) {
+                console.error('Error setting ACL:', err);
+                return res.status(500).json({ error: 'Failed to set ACL', details: stderr });
+            }
+
+            try {
+                const allSharedFiles = readSharedFiles();
+                const newSharedFile = {
+                    filePath,
+                    owner,
+                    recipient,
+                    permission,
+                    sharedAt: new Date().toISOString()
+                };
+
+                const existingIndex = allSharedFiles.findIndex(
+                    file => file.filePath === filePath &&
+                        file.owner === owner &&
+                        file.recipient === recipient
+                );
+
+                if (existingIndex >= 0) {
+                    allSharedFiles[existingIndex] = newSharedFile;
+                    console.log('Updated existing shared file entry');
+                } else {
+                    allSharedFiles.push(newSharedFile);
+                    console.log('Added new shared file entry');
+                }
+
+                writeSharedFiles(allSharedFiles);
+
+                return res.json({
+                    message: `File shared with ${recipient} with ${permission} access`,
+                    success: true
+                });
+            } catch (storageError) {
+                console.error('Error storing shared file info:', storageError);
+                return res.json({
+                    message: `File shared with ${recipient} with ${permission} access (ACL set, but failed to store in database)`,
+                    warning: 'Database storage failed'
+                });
+            }
+        });
+    });
+});
+
+app.listen(SOCKET_PATH, () => {
+    fs.chmodSync(SOCKET_PATH, 0o777);
+    console.log(`root-backend listening on socket ${SOCKET_PATH}`);
+
+    try {
+        const testFiles = readSharedFiles();
+        console.log(`Shared files database initialized with ${testFiles.length} entries`);
+    } catch (error) {
+        console.error('Failed to initialize shared files database:', error);
     }
 });

@@ -111,15 +111,19 @@ export function FileViewerDialog({ file, isOpen, onClose }: FileViewerProps) {
       setError("");
 
       try {
-        const response = await fetch(
-          `/api/files/view/${file.name}?path=${encodeURIComponent(file.path || "")}`,
-          {
-            credentials: "include",
-          }
-        );
+        let url = `/api/files/view/${file.name}?path=${encodeURIComponent(file.path || "")}`;
+
+        if (file.shared && file.owner) {
+          url += `&owner=${encodeURIComponent(file.owner)}`;
+        }
+
+        const response = await fetch(url, {
+          credentials: "include",
+        });
 
         if (!response.ok) {
-          throw new Error("Failed to fetch file");
+          const errorText = await response.text();
+          throw new Error(`Failed to fetch file: ${response.status} - ${errorText}`);
         }
 
         if (type === "code") {
@@ -132,8 +136,8 @@ export function FileViewerDialog({ file, isOpen, onClose }: FileViewerProps) {
           setFileUrl(url);
         }
       } catch (err) {
-        setError("Error loading file");
-        console.error(err);
+        console.error("Error fetching file:", err);
+        setError(`Error loading file: ${err instanceof Error ? err.message : 'Unknown error'}`);
       } finally {
         setIsLoading(false);
       }
@@ -151,17 +155,17 @@ export function FileViewerDialog({ file, isOpen, onClose }: FileViewerProps) {
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
       );
     }
 
     if (error) {
       return (
-        <div className="flex flex-col items-center justify-center h-64 text-red-500 space-y-2">
-          <p>{error}</p>
-        </div>
+          <div className="flex flex-col items-center justify-center h-64 text-red-500 space-y-2">
+            <p>{error}</p>
+          </div>
       );
     }
 
@@ -170,26 +174,26 @@ export function FileViewerDialog({ file, isOpen, onClose }: FileViewerProps) {
     switch (viewerType) {
       case "image":
         return (
-          <div className="flex justify-center p-4">
-            <img
-              src={fileUrl}
-              alt={file.name}
-              className="max-w-full max-h-[70vh] object-contain rounded-md"
-            />
-          </div>
+            <div className="flex justify-center p-4">
+              <img
+                  src={fileUrl}
+                  alt={file.name}
+                  className="max-w-full max-h-[70vh] object-contain rounded-md"
+              />
+            </div>
         );
 
       case "media":
         return (
-          <div className="flex justify-center p-4">
-            <ReactPlayer
-              url={fileUrl}
-              controls
-              width="100%"
-              height="auto"
-              style={{ maxHeight: "70vh" }}
-            />
-          </div>
+            <div className="flex justify-center p-4">
+              <ReactPlayer
+                  url={fileUrl}
+                  controls
+                  width="100%"
+                  height="auto"
+                  style={{ maxHeight: "70vh" }}
+              />
+            </div>
         );
 
       case "pdf":
@@ -209,47 +213,52 @@ export function FileViewerDialog({ file, isOpen, onClose }: FileViewerProps) {
 
       case "code":
         return (
-          <div className="h-[70vh] border rounded-md">
-            <Editor
-              height="100%"
-              language={getMonacoLanguage(file.name)}
-              value={fileContent}
-              options={{
-                readOnly: true,
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                wordWrap: "on",
-              }}
-              theme="vs-dark"
-            />
-          </div>
+            <div className="h-[70vh] border rounded-md">
+              <Editor
+                  height="100%"
+                  language={getMonacoLanguage(file.name)}
+                  value={fileContent}
+                  options={{
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    wordWrap: "on",
+                  }}
+                  theme="vs-dark"
+              />
+            </div>
         );
 
       default:
         return (
-          <div className="flex flex-col items-center justify-center h-64 text-muted-foreground space-y-2">
-            <p>Preview not available for this file type</p>
-          </div>
+            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground space-y-2">
+              <p>Preview not available for this file type</p>
+            </div>
         );
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-semibold">
-            {file?.name || "File Viewer"}
-          </DialogTitle>
-          {viewerType && viewerType !== "unsupported" && (
-            <p className="text-sm text-muted-foreground capitalize">
-              {viewerType} viewer
-            </p>
-          )}
-        </DialogHeader>
-        {renderContent()}
-      </DialogContent>
-    </Dialog>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl w-full">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">
+              {file?.name || "File Viewer"}
+              {file?.shared && (
+                  <span className="ml-2 text-sm text-blue-600 font-normal">
+                (shared by {file.owner})
+              </span>
+              )}
+            </DialogTitle>
+            {viewerType && viewerType !== "unsupported" && (
+                <p className="text-sm text-muted-foreground capitalize">
+                  {viewerType} viewer
+                </p>
+            )}
+          </DialogHeader>
+          {renderContent()}
+        </DialogContent>
+      </Dialog>
   );
 }
