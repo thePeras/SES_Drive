@@ -110,9 +110,7 @@ export function FileViewerDialog({ file, isOpen, onClose }: FileViewerProps) {
         const response = await fetch(
           `/api/files/view/${file.name}?path=${encodeURIComponent(file.path || "")}`,
           {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
+            credentials: "include",
           }
         );
 

@@ -26,10 +26,7 @@ function isValidUnixPassword(password, username = '') {
   const maxLength = 64;
 
   return !(typeof password !== 'string' || password.length < minLength || password.length > maxLength);
-
-
 }
-
 
 router.post('/register', async (req, res) => {
   try {
@@ -69,7 +66,17 @@ router.post('/register', async (req, res) => {
     console.log('User created successfully');
 
     const token = generateJWTToken(username)
-    res.status(201).json({ token });
+
+    // TODO: Check config
+    res.cookie('access_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+
+    res.json({ username: req.body.username });
+
   } catch (error) {
     console.error('Registration failed:', error);
     res.status(500).json({ message: 'Registration failed', error: error.message });
@@ -89,7 +96,15 @@ router.post('/login', async (req, res) => {
 
     const token = generateJWTToken(username);
 
-    res.json({ token });
+    // TODO: Check config
+    res.cookie('access_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+
+    res.json({ username: req.body.username });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -100,6 +115,15 @@ const generateJWTToken = (username) => jwt.sign(
   process.env.JWT_SECRET || 'your-secret-key',
   { expiresIn: '24h' }
 );
+
+router.post('/logout', (req, res) => {
+  res.clearCookie('access_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Strict',
+  });
+  res.json({ message: 'Logged out successfully' });
+});
 
 // Get user profile (protected route)
 router.get('/profile', auth, async (req, res) => {

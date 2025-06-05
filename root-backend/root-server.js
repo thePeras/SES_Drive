@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const pam = require('authenticate-pam');
 const app = express();
+
 app.use(express.json());
 
 const PROFILES_DIR = '/app/shared/profiles';
@@ -191,6 +192,7 @@ app.post('/upload-profile', (req, res) => {
         });
     }
 
+    // TODO: move this to middleware
     const checkUserCmd = `id -u ${username} 2>/dev/null`;
     exec(checkUserCmd, (err) => {
         if (err) {

@@ -33,13 +33,13 @@ export default function DashboardPage() {
   const fetchFiles = (path = currentPath) => {
     const queryParam = path ? `?path=${encodeURIComponent(path)}` : '';
     fetch(`/api/files${queryParam}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      credentials: 'include',
     })
       .then((res) => res.json())
       .then((data) => {
         setFiles(data.map((item: FileItem) => ({
           ...item,
-          path: currentPath, 
+          path: currentPath,
         })));
       })
       .catch((err) => console.error(err));
@@ -67,15 +67,13 @@ export default function DashboardPage() {
 
     const res = await fetch("/api/files/create", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+      credentials: "include",
       body: formData,
     });
 
     await res.json();
     fetchFiles();
-    
+
     toast("Upload successful", {
       description: `File "${input.files[0].name}" uploaded successfully.`,
     });
@@ -90,15 +88,13 @@ export default function DashboardPage() {
 
     const res = await fetch("/api/files/profile/create", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+      credentials: "include",
       body: formData,
     });
 
     await res.json();
     fetchFiles();
-    
+
     toast("Profile upload successful", {
       description: `Profile file "${input.files[0].name}" uploaded successfully.`,
     });
@@ -135,25 +131,25 @@ export default function DashboardPage() {
       setError("Directory name cannot be empty");
       return;
     }
-    
+
     const payload = {
       name: directoryName,
-      parent: currentPath, 
+      parent: currentPath,
     };
-    
+
     const res = await fetch("/api/files/mkdir", {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
     });
-    
+
     await res.json();
     fetchFiles();
-    setDirectoryName(''); 
-    
+    setDirectoryName('');
+
     toast("Directory created", {
       description: `Directory "${directoryName}" created successfully.`,
     });
@@ -242,7 +238,7 @@ export default function DashboardPage() {
               </Button>
             }
           </div>
-          
+
           <div className="flex items-center gap-2 mb-4 p-3 bg-muted rounded-lg">
             <span className="text-sm text-muted-foreground">Current path:</span>
             <span className="font-mono">/{currentPath || 'root'}</span>
@@ -263,21 +259,21 @@ export default function DashboardPage() {
           </div>
 
           <div className={`grid ${showTerminal ? "grid-cols-2" : "grid-cols-1"} gap-4`}>
-            <FileTable 
-              files={files} 
+            <FileTable
+              files={files}
               onViewFile={handleViewFile}
               onEnterDirectory={handleEnterDirectory}
             />
             <FileViewerDialog
-              file={viewerFile} 
+              file={viewerFile}
               isOpen={isViewerOpen}
               onClose={closeViewer}
             />
             {showTerminal && (
-              <Terminal 
-                fetchFiles={fetchFiles} 
+              <Terminal
+                fetchFiles={fetchFiles}
                 hideTerminal={() => setShowTerminal(false)}
-                currentPath={currentPath} 
+                currentPath={currentPath}
               />
             )}
           </div>

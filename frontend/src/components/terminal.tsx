@@ -132,9 +132,9 @@ export function Terminal({ fetchFiles, hideTerminal, currentPath = '' }: Props) 
         const response = await fetch("/api/files/ci", {
             method: "POST",
             headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
                 "Content-Type": "application/json",
             },
+            credentials: "include",
             body: JSON.stringify({ 
                 command: cmd,
                 workingDir: currentPath
