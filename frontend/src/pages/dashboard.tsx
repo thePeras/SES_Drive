@@ -468,6 +468,7 @@ export default function DashboardPage() {
               onEnterDirectory={handleEnterDirectory}
               onShareFile={viewMode === 'myFiles' ? openShareDialog : undefined}
               isSharedView={viewMode === 'sharedFiles'}
+              onDeleteFile={onDeleteFile}
             />
             <FileViewerDialog
               file={viewerFile}

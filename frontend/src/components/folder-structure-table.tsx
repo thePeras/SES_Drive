@@ -127,7 +127,7 @@ export function FileTable({
                         size="icon"
                         variant="destructive"
                         className="h-8 w-8 p-0"
-                        onClick={() => onDeleteFile(file)}
+                        onClick={() => onDeleteFile?.(file)}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
