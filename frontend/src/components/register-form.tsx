@@ -29,13 +29,13 @@ export function RegisterForm({
     const requestRegister = () => {
         setIsLoading(true);
         setError('');
-        console.log("Registering...");
+        
         if (password !== confirmPassword) {
             setError('Passwords do not match');
             setIsLoading(false);
             return;
         }
-        console.log(password, confirmPassword);
+        
         fetch('/api/auth/register', {
             method: 'POST',
             headers: {
@@ -48,8 +48,8 @@ export function RegisterForm({
         })
             .then(res => res.json())
             .then(data => {
-                if (data.token) {
-                    localStorage.setItem('token', data.token);
+                if (data.username) {
+                    localStorage.setItem('username', data.username);
                     onSuccess();
                 } else {
                     setError(data.message || 'Registration failed');

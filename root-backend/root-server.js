@@ -1,10 +1,10 @@
 const express = require('express');
-const { exec } = require('child_process');
-const { execSync } = require('child_process');
+const { exec, execFile, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const pam = require('authenticate-pam');
 const app = express();
+
 app.use(express.json());
 
 const PROFILES_DIR = '/app/shared/profiles';
@@ -108,7 +108,7 @@ app.post('/create-user', (req, res) => {
         return res.status(400).json({ error: 'username and password required' });
     }
 
-    const command = `useradd -m -s /bin/bash ${username} && echo "${username}:${password}" | chpasswd`;
+    const command = `useradd -m -s /app/limited-bin/limited-shell.sh ${username} && echo "${username}:${password}" | chpasswd`;
 
     exec(command, (err, stdout, stderr) => {
         if (err) {
@@ -193,19 +193,22 @@ app.post('/execute-command', (req, res) => {
     const userUidInt = parseInt(userUid, 10);
     const cwd = path.join('/home', username, workingDir);
 
-    exec(command,
+    execFile('/app/limited-bin/limited-shell.sh', command.split(' '),
         {
             cwd: cwd,
             uid: userUidInt,
         },
         (error, stdout, stderr) => {
             if (error) {
+                if (error.code === 125) {
+                    error.message = "You don't have permissions to execute this command";
+                }
                 console.error(`Error executing command: ${error.message}`);
-                return res.status(200).json({ message: 'Error executing command', error: error.message });
+                return res.status(200).json({ message: 'Error executing command', error: error.message.replace(" /app/limited-bin/limited-shell.sh", "") });
             }
             if (stderr) {
                 console.error(`Command stderr: ${stderr}`);
-                return res.status(500).json({ message: 'Command execution error', error: stderr });
+                return res.status(500).json({ message: 'Command execution error', error: stderr.replace(" /app/limited-bin/limited-shell.sh", "") });
             }
             console.log(`Command executed successfully:\n${stdout}`);
             return res.json({ message: 'Command executed successfully', output: stdout });
@@ -222,6 +225,7 @@ app.post('/upload-profile', (req, res) => {
         });
     }
 
+    // TODO: move this to middleware
     const checkUserCmd = `id -u ${username} 2>/dev/null`;
     exec(checkUserCmd, (err) => {
         if (err) {

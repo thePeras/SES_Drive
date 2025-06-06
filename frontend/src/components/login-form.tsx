@@ -28,7 +28,7 @@ export function LoginForm({
   const requestLogin = () => {
     setIsLoading(true);
     setError('');
-    
+
     fetch('/api/auth/login', {
       method: 'POST',
       headers: {
@@ -39,23 +39,23 @@ export function LoginForm({
         password
       })
     })
-    .then(res => res.json())
-    .then(data => {
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-        onSuccess();
-      } else {
-        setError(data.message || 'Login failed');
-        console.error('Login failed:', data.message);
-      }
-    })
-    .catch(err => {
-      setError('An error occurred during login');
-      console.error('Login error:', err)
-    })
-    .finally(() => {
-      setIsLoading(false);
-    });
+      .then(res => res.json())
+      .then(data => {
+        if (data.username) {
+          localStorage.setItem('username', data.username);
+          onSuccess();
+        } else {
+          setError('Login failed. Please check your credentials.');
+          console.error('Login failed:', data.message);
+        }
+      })
+      .catch(err => {
+        setError('An error occurred during login');
+        console.error('Login error:', err)
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -96,10 +96,10 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  required 
+                <Input
+                  id="password"
+                  type="password"
+                  required
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
                 />

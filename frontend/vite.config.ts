@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: `http://localhost:${env.VITE_API_PORT || 5500}`,
           changeOrigin: true,
-          secure: false //TODO: Change later, for deliver / production, to enable SSL
+          secure: false //TODO: Change later in production, to enable SSL
         }
       }
     }

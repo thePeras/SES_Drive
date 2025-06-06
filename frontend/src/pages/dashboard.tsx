@@ -58,8 +58,8 @@ export default function DashboardPage() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
+      credentials: 'include',
       body: JSON.stringify({
         recipient: targetUsername,
         filePath: fileToShare.path
@@ -94,8 +94,8 @@ export default function DashboardPage() {
   };
 
   const fetchSharedFiles = () => {
-    fetch("/api/files/shared", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    fetch('/api/files/shared', {
+      credentials: 'include',
     })
       .then((res) => {
         if (!res.ok) {
@@ -104,35 +104,31 @@ export default function DashboardPage() {
         return res.json();
       })
       .then((data) => {
-        console.log("Shared files response:", data);
+        console.log('Shared files response:', data);
 
         const transformedFiles = data.map((sharedFile: any) => {
-          const pathParts = sharedFile.filePath.split("/");
+          const pathParts = sharedFile.filePath.split('/');
           const fileName = pathParts[pathParts.length - 1];
 
           return {
             name: fileName,
-            type: "file",
+            type: 'file',
             shared: true,
             sharedFrom: sharedFile.owner,
             owner: sharedFile.owner,
             permission: sharedFile.permission,
             filePath: sharedFile.filePath,
             sharedAt: sharedFile.sharedAt,
-            path:
-              sharedFile.filePath.substring(
-                0,
-                sharedFile.filePath.lastIndexOf("/"),
-              ) || "",
+            path: sharedFile.filePath.substring(0, sharedFile.filePath.lastIndexOf('/')) || ''
           };
         });
 
         setFiles(transformedFiles);
       })
       .catch((err) => {
-        console.error("Error fetching shared files:", err);
+        console.error('Error fetching shared files:', err);
         toast("Failed to fetch shared files", {
-          description: err.message || "Unknown error occurred",
+          description: err.message || "Unknown error occurred"
         });
         setFiles([]);
       });
@@ -141,20 +137,18 @@ export default function DashboardPage() {
   const fetchFiles = (path = currentPath) => {
     const queryParam = path ? `?path=${encodeURIComponent(path)}` : "";
     fetch(`/api/files${queryParam}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      credentials: 'include',
     })
       .then((res) => res.json())
       .then((data) => {
-        setFiles(
-          data.map((item: FileItem) => ({
-            ...item,
-            path: currentPath,
-            shared: false,
-          })),
-        );
+        setFiles(data.map((item: FileItem) => ({
+          ...item,
+          path: currentPath,
+          shared: false
+        })));
       })
       .catch((err) => {
-        console.error("Error fetching files:", err);
+        console.error('Error fetching files:', err);
         toast("Failed to fetch files", { description: err.message });
       });
   };
@@ -190,9 +184,7 @@ export default function DashboardPage() {
 
     const res = await fetch("/api/files/create", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+      credentials: "include",
       body: formData,
     });
 
@@ -213,9 +205,7 @@ export default function DashboardPage() {
 
     const res = await fetch("/api/files/profile/create", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+      credentials: "include",
       body: formData,
     });
 
@@ -268,8 +258,8 @@ export default function DashboardPage() {
 
     const res = await fetch("/api/files/mkdir", {
       method: "POST",
+      credentials: "include",
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
@@ -326,22 +316,20 @@ export default function DashboardPage() {
           <ModeToggle />
         </div>
         <div className="flex-1 p-4 overflow-y-auto">
-          <h1 className="text-2xl font-semibold mb-6">
-            Welcome to Aspose, your file management tool.
-          </h1>
+          <h1 className="text-2xl font-semibold mb-6">Welcome to Aspose, your file management tool.</h1>
 
           {/* View Mode Toggle */}
           <div className="flex gap-2 mb-6">
             <Button
-              variant={viewMode === "myFiles" ? "default" : "outline"}
-              onClick={() => handleViewModeChange("myFiles")}
+              variant={viewMode === 'myFiles' ? 'default' : 'outline'}
+              onClick={() => handleViewModeChange('myFiles')}
             >
               <FolderOpen className="mr-2 h-4 w-4" />
               My Files
             </Button>
             <Button
-              variant={viewMode === "sharedFiles" ? "default" : "outline"}
-              onClick={() => handleViewModeChange("sharedFiles")}
+              variant={viewMode === 'sharedFiles' ? 'default' : 'outline'}
+              onClick={() => handleViewModeChange('sharedFiles')}
             >
               <Users className="mr-2 h-4 w-4" />
               Shared with Me
@@ -349,12 +337,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Only show upload/create options in "My Files" mode */}
-          {viewMode === "myFiles" && (
+          {viewMode === 'myFiles' && (
             <div className="grid w-full max-w-xl items-start gap-6 mb-10">
-              <Dialog
-                open={isSharingDialogOpen}
-                onOpenChange={setIsSharingDialogOpen}
-              >
+              <Dialog open={isSharingDialogOpen} onOpenChange={setIsSharingDialogOpen}>
                 <DialogContent>
                   <div className="grid gap-4">
                     <Label htmlFor="username">Share with (username)</Label>
@@ -370,9 +355,7 @@ export default function DashboardPage() {
                       id="permission"
                       className="border rounded px-2 py-1"
                       value={permission}
-                      onChange={(e) =>
-                        setPermission(e.target.value as "view" | "edit")
-                      }
+                      onChange={(e) => setPermission(e.target.value as 'view' | 'edit')}
                     >
                       <option value="view">View</option>
                       <option value="edit">Edit</option>
@@ -392,12 +375,7 @@ export default function DashboardPage() {
                 </DialogTrigger>
                 <DialogContent>
                   <div className="grid gap-4">
-                    <Label
-                      htmlFor="directory-name"
-                      className="text-base font-medium"
-                    >
-                      Directory Name
-                    </Label>
+                    <Label htmlFor="directory-name" className="text-base font-medium">Directory Name</Label>
                     <Input
                       id="directory-name"
                       type="text"
@@ -411,12 +389,7 @@ export default function DashboardPage() {
               </Dialog>
 
               <div className="grid gap-2">
-                <Label
-                  htmlFor="general-upload"
-                  className="text-base font-medium"
-                >
-                  Upload files for your file structure
-                </Label>
+                <Label htmlFor="general-upload" className="text-base font-medium">Upload files for your file structure</Label>
                 <div className="flex items-center gap-4">
                   <input
                     id="general-upload"
@@ -433,12 +406,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="grid gap-2">
-                <Label
-                  htmlFor="profile-upload"
-                  className="text-base font-medium"
-                >
-                  Upload an HTML file for your profile
-                </Label>
+                <Label htmlFor="profile-upload" className="text-base font-medium">Upload an HTML file for your profile</Label>
                 <div className="flex items-center gap-4">
                   <input
                     id="profile-upload"
@@ -456,9 +424,7 @@ export default function DashboardPage() {
               </div>
 
               {selectedFile && (
-                <p className="text-sm text-muted-foreground">
-                  Selected: {selectedFile.name}
-                </p>
+                <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>
               )}
             </div>
           )}
@@ -466,20 +432,18 @@ export default function DashboardPage() {
           {error && <p className="text-red-500 mb-4">{error}</p>}
 
           <div className="flex justify-end mb-5">
-            {!showTerminal && (
-              <Button onClick={() => setShowTerminal((prev) => !prev)}>
+            {!showTerminal &&
+              <Button onClick={() => setShowTerminal(prev => !prev)}>
                 Open Terminal
               </Button>
-            )}
+            }
           </div>
 
           {/* Only show path navigation in "My Files" mode */}
-          {viewMode === "myFiles" && (
+          {viewMode === 'myFiles' && (
             <div className="flex items-center gap-2 mb-4 p-3 bg-muted rounded-lg">
-              <span className="text-sm text-muted-foreground">
-                Current path:
-              </span>
-              <span className="font-mono">/{currentPath || "root"}</span>
+              <span className="text-sm text-muted-foreground">Current path:</span>
+              <span className="font-mono">/{currentPath || 'root'}</span>
               <div className="flex gap-2 ml-auto">
                 {currentPath && (
                   <>
@@ -487,11 +451,7 @@ export default function DashboardPage() {
                       <ChevronUp className="w-4 h-4 mr-1" />
                       Up
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleGoToRoot}
-                    >
+                    <Button size="sm" variant="outline" onClick={handleGoToRoot}>
                       <Home className="w-4 h-4 mr-1" />
                       Root
                     </Button>
@@ -501,16 +461,13 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div
-            className={`grid ${showTerminal ? "grid-cols-2" : "grid-cols-1"} gap-4`}
-          >
+          <div className={`grid ${showTerminal ? "grid-cols-2" : "grid-cols-1"} gap-4`}>
             <FileTable
               files={files}
               onViewFile={handleViewFile}
               onEnterDirectory={handleEnterDirectory}
-              onShareFile={viewMode === "myFiles" ? openShareDialog : undefined}
-              isSharedView={viewMode === "sharedFiles"}
-              onDeleteFile={onDeleteFile}
+              onShareFile={viewMode === 'myFiles' ? openShareDialog : undefined}
+              isSharedView={viewMode === 'sharedFiles'}
             />
             <FileViewerDialog
               file={viewerFile}

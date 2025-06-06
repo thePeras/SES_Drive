@@ -3,12 +3,12 @@ import jwt from "jsonwebtoken";
 import { auth } from "../middleware/auth.js";
 import dotenv from "dotenv";
 import { rootBackend } from "../rootBackend.js";
+import { pwnedPassword } from 'hibp';
 
 dotenv.config();
 
 const router = express.Router();
 
-//TODO: Move this to a validation file
 function isValidUnixUsername(username) {
   const maxLength = 32;
   const regex = /^[a-z][a-z0-9_-]*$/;
@@ -19,17 +19,24 @@ function isValidUnixUsername(username) {
     regex.test(username);
 }
 
-//TODO: Move this to a validation file
-//TODO: Define de password policy
 function isValidUnixPassword(password, username = '') {
   const minLength = 5;
   const maxLength = 64;
 
   return !(typeof password !== 'string' || password.length < minLength || password.length > maxLength);
-
-
 }
 
+// Check if a password has been compromised using HIBP
+// The password is given in plain text, but only the first 5 characters of its SHA-1 hash will be submitted to the API.
+async function isPasswordCompromised(password) {
+  try {
+    const breachCount = await pwnedPassword(password);
+    return [breachCount > 0, breachCount];
+  } catch (err) {
+    console.error('HIBP check failed:', err);
+    return [false, 0];
+  }
+}
 
 router.post('/register', async (req, res) => {
   try {
@@ -46,7 +53,11 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Invalid password. Must be 5-64 characters long' });
     }
 
-    // TODO: match the desired password with common on the internet and tell the user if it matches a common password heuheuhue
+    const [isCompromised, breachCount] = await isPasswordCompromised(password);
+    if (isCompromised) {
+      console.log(`Password has been compromised ${breachCount} times`);
+      return res.status(400).json({ message: `This password has been compromised. It has been pwned ${breachCount} times. Please choose a different password.` });
+    }
 
     // Check if user already exists
     console.log('Checking username availability...');
@@ -69,7 +80,16 @@ router.post('/register', async (req, res) => {
     console.log('User created successfully');
 
     const token = generateJWTToken(username)
-    res.status(201).json({ token });
+
+    res.cookie('access_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+
+    res.json({ username: req.body.username });
+
   } catch (error) {
     console.error('Registration failed:', error);
     res.status(500).json({ message: 'Registration failed', error: error.message });
@@ -89,7 +109,14 @@ router.post('/login', async (req, res) => {
 
     const token = generateJWTToken(username);
 
-    res.json({ token });
+    res.cookie('access_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+
+    res.json({ username: req.body.username });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -101,9 +128,13 @@ const generateJWTToken = (username) => jwt.sign(
   { expiresIn: '24h' }
 );
 
-// Get user profile (protected route)
-router.get('/profile', auth, async (req, res) => {
-  res.json(req.user);
+router.post('/logout', (req, res) => {
+  res.clearCookie('access_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Strict',
+  });
+  res.json({ message: 'Logged out successfully' });
 });
 
 export default router;

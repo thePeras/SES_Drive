@@ -6,9 +6,9 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation()
-  const token = localStorage.getItem('token')
+  const username = localStorage.getItem('username')
 
-  if (!token) {
+  if (!username) {
     return <Navigate to="/auth" state={{ from: location }} replace />
   }
 
