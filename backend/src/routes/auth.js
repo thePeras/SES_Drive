@@ -9,7 +9,6 @@ dotenv.config();
 
 const router = express.Router();
 
-//TODO: Move this to a validation file
 function isValidUnixUsername(username) {
   const maxLength = 32;
   const regex = /^[a-z][a-z0-9_-]*$/;
@@ -20,8 +19,6 @@ function isValidUnixUsername(username) {
     regex.test(username);
 }
 
-//TODO: Move this to a validation file
-//TODO: Define de password policy
 function isValidUnixPassword(password, username = '') {
   const minLength = 5;
   const maxLength = 64;
@@ -84,7 +81,6 @@ router.post('/register', async (req, res) => {
 
     const token = generateJWTToken(username)
 
-    // TODO: Check config
     res.cookie('access_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -113,7 +109,6 @@ router.post('/login', async (req, res) => {
 
     const token = generateJWTToken(username);
 
-    // TODO: Check config
     res.cookie('access_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -140,11 +135,6 @@ router.post('/logout', (req, res) => {
     sameSite: 'Strict',
   });
   res.json({ message: 'Logged out successfully' });
-});
-
-// Get user profile (protected route)
-router.get('/profile', auth, async (req, res) => {
-  res.json(req.user);
 });
 
 export default router;
