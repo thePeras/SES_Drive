@@ -64,7 +64,10 @@ export function Terminal({ fetchFiles, hideTerminal, currentPath = '' }: Props) 
             ),
         },
     ])
-    const [history, setHistory] = useState<string[]>([]) // TODO: History can be saved in local storage
+    const [history, setHistory] = useState<string[]>(() => {
+        const storedHistory = localStorage.getItem('shell_history')
+        return storedHistory ? JSON.parse(storedHistory) : []
+    })
     const [historyIndex, setHistoryIndex] = useState(-1)
     const inputRef = useRef<HTMLInputElement>(null)
     const scrollAreaRef = useRef<HTMLDivElement>(null)
@@ -175,6 +178,7 @@ export function Terminal({ fetchFiles, hideTerminal, currentPath = '' }: Props) 
         }
 
         // Add to history
+        localStorage.setItem('shell_history', JSON.stringify([input, ...history]))
         setHistory((prev) => [input, ...prev])
         setHistoryIndex(-1)
         setInput("")
