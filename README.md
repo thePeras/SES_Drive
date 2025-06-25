@@ -1,7 +1,40 @@
+# Secure File Storage System
+
+> **Project** <br />
+> Course Unit: [Security in Software Engineering](https://sigarra.up.pt/feup/en/ucurr_geral.ficha_uc_view?pv_ocorrencia_id=537131 "Segurança em Engenharia de Software"), 1nd year
+> <br />
+> Course: [Master in Software Engineering](https://sigarra.up.pt/feup/en/cur_geral.cur_view?pv_curso_id=10861&pv_ano_lectivo=2024) <br />
+> Faculty: **FEUP** (Faculty of Engineering of the University of Porto)
+> <br/>
+> Assignment: [PDF](docs/Assignment.pdf)
+> <br/>
+> Final Report: [PDF](docs/FinalReport.pdf)
+> <br/>
+> Project evaluation: **5**/6
+
+## Project Goals
+
+Web-based file management system that provides users with a personal, Unix-like directory structure. The primary goals are to offer a user experience through a dual-interface system, robust access control and simple authentication.
+
+Key Project Goals:
+- Dual-Interface File Management System: A graphical web frontend for basic file operations (create, delete, rename) and a Unix-like shell environment for advanced and batch operations. Both interfaces will be powered by a backend RESTful API.
+
+- Enable Secure User Authentication and Access Control: Ensure users can only access their own files or files explicitly shared with them, with distinct "view" and "edit" permissions for shared content.
+
+- Implement File Sharing and Public Web Page Hosting: Allow users to share files and directories with other registered users. Additionally, provide a feature for users to publish a personal, publicly accessible web page from their directory structure, similar to GitHub Pages.
+
+## Approach
+
+Using the server's own user system (Unix) instead of a traditional database. When a new person signs up, the system creates a dedicated Unix user for them to store their files securely in a personal folder.
+
+This approach keeps permissions and data tightly linked, avoiding potential sync issues and security risks found in databases. For sharing files, the team used a Unix feature called Access Control Lists (ACLs) to grant specific "view" or "edit" access to other users.
+
+Read the [Final Report](docs/FinalReport.pdf) for more details on the approach and decisions.
+
 ## Architecture
 
 ### frontend
-- Provides a web interface for users to interact with their files and directories
+- Provides a simple web interface for users to interact with their files and directories
 
 ### backend
 Non sudo server:
@@ -14,7 +47,7 @@ Sudo server:
 - Manage unix users
 - Manage ACL (Access Control Lists) for files and directories
 
-## Development Setup
+## How to run
 
 ### Run docker container for the backend
 
@@ -31,67 +64,3 @@ docker-compose up
 ## Notes
 
 - Created users may not persisted when restarting the backend.
-
-
-## Reqs
-
-**Interface:**
-
-- Each user shall have a local directory structure, much like the Unix file system. Users shall be able to:
-    - Perform simple operations such as creating, deleting or renaming files via the graphical web frontend;
-    - Perform batch or more advanced operations via a Unix-like shell environment over their local
-    directory structure;
-    - Both modes of operation may be supported by a backend RESTful API reminiscent of, e.g., (a
-    simplification of) the Google Drive API.
-- Users shall be able to share files/directories among each other.
-- Users shall be able to publish a personal web page reminiscent of, e.g., (a simplification of) GitHub pages.
-You are free to choose a design. For instance, a user may have a separate public HTML folder or all his/her
-directory structure may be rendered via the backend's HTTP server.
-
-**B. Authentication:**
-
-- Users have to login in the web frontend before accessing their directory structure.
-- Operations on a user's directory structure require authenticated users.
-- You shall have a minimal authentication method, e.g., password-based. If you see fit you may additionally
-use secure HTTPS communication for authenticated users. Note, however, that authentication and secure
-communication are not the focus of this project.
-
- **C. Access control:**
-
-- A user shall only have access to files/directories that he/she owns or that have been shared with him/her.
-- A user may share a file/directory with other users with view or edit permissions.
-◦ A user's personal web page is public.
-
-## Deliverable dates
-- Application Demo: May 30th
-- Report submission: Jun 6th
-
-## Proposed stack:
-
-- Client web page: React with ShadCN
-- Server:
-- Databased:
-
-Entities from the system:
-
-- User
-    - id int
-    - name str
-    - password str (sha256 + salt)
-- File
-    - name str
-    - content str
-    - type enum
-    - write [int]
-    - read [int]
-    - owner int
-    - is_public bool
-- Directory
-    - name str
-    - files [file]
-    - write [int]
-    - read [int]
-    - owner int
-    - is_public bool
-- Page
-    - page_owner user
